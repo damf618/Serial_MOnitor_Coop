@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Monitoreo Isolse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            padding: 8px;
+            max-width: 500px;
+        }
+        form {
+            background-color: #EEEEEE;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 2px 2px 4px #eee;
+            width: 100%;
+            margin: 0 auto;
+            text-align: left;
+        } 
+        div {
+            margin-top: 1rem;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+        }
+        input {
+            display: block;
+            width: 100%;
+            min-width: 100px;
+            padding: 8px;
+            border: 1px solid #a5a5a5;
+            border-radius: 4px;
+            margin: 8px 0 16px 0;
+        }
+        input:focus {
+            outline: none;
+            border: 1px solid #f98d33;
+        }
+        button {
+            width: 75px;
+            height: 40px;
+            margin-top: 16px;
+            padding: 8px;
+            font-weight: bold;
+            background-color: #f98d33;
+            align-self: center;
+            border-radius: 4px;
+            color: #2e2e2e;
+            border-style: none;
+        }
+        button:focus {
+        }
+        button:hover, button:active {
+            cursor: pointer;
+            background-color: #ff8017;
+        }
+    </style>
+</head>
+<body>
+    <h1>Monitoreo Isolse</h1>
+    <h2>Configuracion Incial</h2>
+    <form action="/get" target="hidden-form">
+        <script>
+            const form = document.querySelector('form');
+            form.addEventListener('submit', (event) => {
+                //event.preventDefault(); 
+                alert("Datos Actualizados \n Ingresa con usuario y clave en\n monitoreoisolse.com");
+                setTimeout(function(){ document.location.reload(false); },10);
+            });
+        </script>
+        <label for="wifiId">SSID:</label>
+        <input type="text" name="WIFI_SSID" id="wifiId" value="%WIFI_SSID%" placeholder="SSID de la red">
+        <label for="wifiPassword">Clave_Wifi:</label>
+        <input type="text" name="WIFI_PSW" id="wifiPassword" value="%WIFI_PSW%" placeholder="Contraseña de la red">
+        <label for="email">Email:</label>
+        <input type="text" name="USERNAME" id="email" value="%USERNAME%" placeholder="Email asociado al usuario">
+        <label for="userPassword">Clave_MonitoreoIsolse:</label>
+        <input type="text" name="USER_PSW" id="userPassword" value="%USER_PSW%" placeholder="Contraseña asociada al usuario">
+        <label for="facility">Nombre_Instalacion:</label>
+        <input type="text" name="FACILITY" id="facility" value="%FACILITY%" placeholder="Identificador de la instalación">
+        <button type="submit" >Ingresar</button>
+    </form>
+</body>
+</html>
+
