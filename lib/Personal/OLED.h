@@ -18,6 +18,8 @@
 #define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+bool msg_flag=false;
+
 void OLED_write_start()
 {
   display.clearDisplay();
@@ -58,8 +60,16 @@ bool OLED_setup()
   return rtn;
 }
 
-void OLED_write_init(String SSID)
+void OLED_write_init(String SSID,String SSID1)
 {
+  display.clearDisplay();
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0);
+  display.println("Apagando la red WiFi:\n");
+  display.println(SSID1);  
+  display.display();
+  delay(5000);
   display.clearDisplay();
   display.setTextSize(1);             // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE);        // Draw white text
@@ -85,7 +95,7 @@ void OLED_write_WiFi_OK()
   delay(5500);  
 }
 
-void OLED_write_WiFi_AP(IPAddress IP_Address)
+void OLED_write_WiFi_AP(const char* IP_Address)
 {
   display.clearDisplay();
   display.setTextSize(2);             // Normal 1:1 pixel scale
@@ -95,10 +105,37 @@ void OLED_write_WiFi_AP(IPAddress IP_Address)
   display.setTextSize(1);             // Normal 1:1 pixel scale
   display.println("");
   display.println(IP_Address);
-  display.display();  
+  display.display();
+  delay(7500);  
 }
 
-void OLED_write_WiFi_Fail()
+void OLED_write_WiFi_Network(String SSID)
+{
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0);
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.println("Por Favor");
+  display.println("conectarse a\n");
+  display.println(SSID);
+  display.display();
+  delay(7500);
+}
+
+void OLED_Write_WiFi_Attention(String SSID,const char* IP_Address)
+{
+  if(!msg_flag)
+  {
+    OLED_write_WiFi_Network(SSID);
+  }
+  else
+  {
+    OLED_write_WiFi_AP(IP_Address);
+  }
+  msg_flag = !msg_flag;
+}
+
+void OLED_write_WiFi_Fail(String SSID)
 {
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);        // Draw white text
@@ -126,6 +163,9 @@ void OLED_write_WiFi_Fail()
   display.println("\nProcesando Nuevo Intento");
   display.display();
   delay(2500);
+  OLED_write_WiFi_Network(SSID);
 }
+
+
 
 #endif

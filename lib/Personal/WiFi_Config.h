@@ -11,18 +11,21 @@
 #include <OLED.h>
 
 #define TRIES 3
-#define HOSTNAME "monitor.com"
-const char* ssid_ap = "Monitoreo Isolse Wi-Fi";
-const char* password_ap = "Monitoreo Isolse Wi-Fi";
+#define HOSTNAME "www.monitorisolse.com"
+const char* ssid_ap = "MonitoreoIsolseWiFi";
+const char* password_ap = "MonitoreoIsolseWiFi";
 
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
+const byte DNS_PORT = 53;
+IPAddress apIP(192, 168, 4, 1);
+AsyncDNSServer dnsServer;
 
 bool all_set        = false;
 bool WiFi_Incorrect = true;
 
-IPAddress IP;
+//IPAddress IP;
 //extern SPIFFS;
 
 const char* WIFI_SSID  = "WIFI_SSID";
@@ -66,7 +69,7 @@ bool Wifi_Connection(String SSID, String PSW)
   bool rtn      =false;
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID,PSW);
-  OLED_write_init(SSID);
+  OLED_write_init(SSID,ssid_ap);
   while ((WiFi.status() != WL_CONNECTED)&&(counter<=TRIES))
   {
     delay(500);
@@ -94,23 +97,32 @@ void Wifi_AP()
 {
   // Start server
   WiFi.mode(WIFI_AP);
-  //WiFi.softAPConfig(IP, IP, IPAddress(255, 255, 255, 0));
+  //WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP(ssid_ap, password_ap);
+  //dnsServer.setErrorReplyCode(AsyncDNSReplyCode::ServerFailure);
+  dnsServer.start(DNS_PORT, HOSTNAME, apIP);
+
   server.begin();
-  OLED_write_WiFi_AP(IP);
+  OLED_write_WiFi_AP(HOSTNAME);
+}
+
+void WiFi_Attention()
+{
+  OLED_Write_WiFi_Attention(ssid_ap,HOSTNAME);
 }
 
 void Wifi_AP_setup()
 {
   WiFi.mode(WIFI_AP);
-  IP = WiFi.softAPIP();
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP(ssid_ap, password_ap);
-  
+  dnsServer.setErrorReplyCode(AsyncDNSReplyCode::ServerFailure);
+  dnsServer.start(DNS_PORT, HOSTNAME, apIP); 
   //#ifdef DEBUG
   Serial.print("Direccion IP: ");
-  Serial.println(IP);
+  Serial.println(apIP);
   //#endif
-  OLED_write_WiFi_AP(IP);
+  OLED_write_WiFi_AP(HOSTNAME);
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false, processor);
@@ -126,42 +138,46 @@ void Wifi_AP_setup()
       inputMessage = request->getParam(WIFI_SSID)->value();
       writeFile(SPIFFS, "/WIFI_SSID.txt", inputMessage.c_str());
     }
-    else
+    if(2>inputMessage.length())
     {
       val=false;
     }
+
     // GET inputInt value on <ESP_IP>/get?inputInt=<inputMessage>
     if (request->hasParam(WIFI_PSW)) {
       inputMessage = request->getParam(WIFI_PSW)->value();
       writeFile(SPIFFS, "/WIFI_PSW.txt", inputMessage.c_str());
     }
-    else
+    if(2>inputMessage.length())
     {
       val=false;
     }
+
     // GET inputFloat value on <ESP_IP>/get?inputFloat=<inputMessage>
     if (request->hasParam(USERNAME)) {
       inputMessage = request->getParam(USERNAME)->value();
       writeFile(SPIFFS, "/USERNAME.txt", inputMessage.c_str());
     }
-    else
+    if(2>inputMessage.length())
     {
       val=false;
     }
+
     if (request->hasParam(USER_PSW)) {
       inputMessage = request->getParam(USER_PSW)->value();
       writeFile(SPIFFS, "/USER_PSW.txt", inputMessage.c_str());
     }
-    else
+    if(2>inputMessage.length())
     {
       val=false;
     }
+
     // GET inputFloat value on <ESP_IP>/get?inputFloat=<inputMessage>
     if (request->hasParam(FACILITY)) {
       inputMessage = request->getParam(FACILITY)->value();
       writeFile(SPIFFS, "/FACILITY.txt", inputMessage.c_str());
     }
-    else
+    if(2>inputMessage.length())
     {
       val=false;
     }
@@ -175,7 +191,8 @@ void Wifi_AP_setup()
     Serial.println(inputMessage);
     #endif
 
-    request->send(SPIFFS, "/index.html", String(), false, processor);
+    //request->send(SPIFFS, "/index.html", String(), false, processor);
+    request->send(200, "text/plain", "Para volver a la carga de datos debes volver a\n www.monitoreoisolse.com ");
   }); 
   server.onNotFound(notFound);
   server.begin();
@@ -193,7 +210,7 @@ bool WiFi_Configuration()
   }
   if(!rtn)
   {
-    OLED_write_WiFi_Fail();
+    OLED_write_WiFi_Fail(ssid_ap);
     Wifi_AP_setup();
   }
   return rtn;

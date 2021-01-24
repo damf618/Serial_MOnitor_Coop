@@ -182,6 +182,11 @@ class Coop_System
    return rtn;
  }
 
+ void WiFi_Attention_OLED()
+ {
+   WiFi_Attention();
+ }
+
 };
 
 

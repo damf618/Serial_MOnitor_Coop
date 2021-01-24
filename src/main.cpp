@@ -32,26 +32,13 @@ void loop1() {
         {
             if(System.Wi_Fi_Connection())
             {
-                taskToken = 2;
+                taskToken = 3;
             }
         }
         else
         {
-            taskToken = 1;
-        }
-
-
-        for (int i = 0; i < 3; ++i)
-        {
-            digitalWrite(LED_BUILTIN, HIGH);
-
-            // IMPORTANT:
-            // When multiple tasks are running 'delay' passes control to
-            // other tasks while waiting and guarantees they get executed.
-            delay(1000);
-
-            digitalWrite(LED_BUILTIN, LOW);
-            delay(1000);
+            System.WiFi_Attention_OLED();
+            taskToken = 2;
         }
         //taskToken = 2;
         taskSema.post();
@@ -60,6 +47,7 @@ void loop1() {
 
 // Task no.2: blink LED with 0.25 second delay.
 void loop2() {
+    bool aux=false;
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -69,20 +57,19 @@ void loop2() {
             yield();
             continue;
         }
-        for (int i = 0; i < 6; ++i)
+
+        if(!aux)
+        {
+            digitalWrite(LED_BUILTIN, LOW);
+        }
+        else
         {
             digitalWrite(LED_BUILTIN, HIGH);
-
-            // IMPORTANT:
-            // When multiple tasks are running 'delay' passes control to
-            // other tasks while waiting and guarantees they get executed.
-            delay(500);
-
-            digitalWrite(LED_BUILTIN, LOW);
-            delay(500);
         }
-        taskToken = 3;
+        aux=!aux; 
+        taskToken = 1;
         taskSema.post();
+        yield();
     }
 }
 
@@ -145,5 +132,4 @@ void setup() {
 void loop() {
     // loops forever by default
     runCoopTasks();
-
 }
