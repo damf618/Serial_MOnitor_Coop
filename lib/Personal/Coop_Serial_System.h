@@ -4,15 +4,7 @@
 #include <Msg_Se_Events.h>
 #include <OLED.h>
 #include <WiFi_Config.h>
-
-
-
-#define OUTPUT_GPIO 5
-
-//TODO Send to .C
-//String temp_s;
-//Msg_Event_Object temp_event(1,temp_s,1,1);
-//Msg_Event_Object** Events_Array = new Msg_Event_Object*[MAX_MSGS_EVENTS];
+#include <Firebase_Comm.h>
 
 class Coop_System 
 {
@@ -76,20 +68,18 @@ class Coop_System
   bool Start()
   {
     bool rtn = true;
-    if(!OLED_setup())
-    {
-      rtn = false;
-    }
+    OLED_setup();
 
-    if(!SPIFFS_Start())
-    {
-      rtn = false;
-    }
+    SPIFFS_Start();
     OLED_write_start();
     //Conexion WiFi con datos 
     if(WiFi_Configuration())
     {
       OLED_write_done();
+    }
+    else
+    {
+      rtn = false;
     }
     return rtn;
   }  
@@ -185,6 +175,45 @@ class Coop_System
  void WiFi_Attention_OLED()
  {
    WiFi_Attention();
+ }
+
+ bool Firebase_Set_up()
+ {
+   bool rtn = false;
+   Serial.println("Firebase Set Up");
+   rtn = Firebase_Set_Up();
+   
+   if(rtn)
+   {
+     rtn=Firebase_First_Push();
+   }
+   
+   return rtn;
+ }
+
+ bool Firebase_upload()
+ {
+   bool rtn = false;
+   rtn = dataupload();
+   return rtn;
+ }
+
+ bool Firebase_enable()
+ {
+   int rtn =2;
+   bool rtn_b = false;
+   rtn = Firebase_Enable();
+   if(0 == rtn)
+   {
+     OLED_write_Web_Config();
+     //Configurar o contactarse con servicio tecnico.  
+   }
+   else
+   {
+     OLED_write_Firebase_Enabled();
+     rtn_b = true;
+   }
+   return rtn_b;
  }
 
 };

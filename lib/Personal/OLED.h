@@ -10,12 +10,12 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
 #define ANIMATION_TIMES 5
-
 #define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define WEBPAGE "www.monitorisolse.com"
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 bool msg_flag=false;
@@ -44,7 +44,7 @@ void OLED_write_done()
   display.println("OK");
   //display.println("Funcionando"); hasta la d
   display.display();
-  delay(5000); 
+  delay(2000); 
 }
 
 bool OLED_setup()
@@ -92,7 +92,57 @@ void OLED_write_WiFi_OK()
   display.setTextSize(3);             // Normal 1:1 pixel scale
   display.println("OK!");
   display.display();
-  delay(5500);  
+  delay(2500);  
+}
+
+
+void OLED_write_Web_Config()
+{
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0);
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.println("Por favor continuar\ncon la configuracion\nen:");
+  display.print(WEBPAGE);
+  display.display();
+  delay(500);  
+}
+
+void OLED_write_Firebase_Enabled()
+{
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(10,0);
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.println("Vinculo con base");
+  display.setCursor(10,20);
+  display.println("de datos Exitoso");
+  display.display();
+  delay(500);  
+}
+
+void OLED_write_Firebase_Start()
+{
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0);
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.println("Iniciando conexion\ncon el servidor");
+  display.display();
+}
+
+void OLED_write_Firebase_Think()
+{
+  display.print(".");
+  display.display();
+  delay(350);
+}
+
+void OLED_write_Firebase_Done()
+{
+  display.print("\nConexion establecida");
+  display.display();
+  delay(2000);
 }
 
 void OLED_write_WiFi_AP(const char* IP_Address)
@@ -116,7 +166,7 @@ void OLED_write_WiFi_Network(String SSID)
   display.setCursor(0,0);
   display.setTextSize(1);             // Normal 1:1 pixel scale
   display.println("Por Favor");
-  display.println("conectarse a\n");
+  display.println("conectarse a:\n");
   display.println(SSID);
   display.display();
   delay(7500);
@@ -160,7 +210,7 @@ void OLED_write_WiFi_Fail(String SSID)
     display.display();
     delay(350);
   }
-  display.println("\nProcesando Nuevo Intento");
+  display.println("\nProcesando Nuevo\nIntento");
   display.display();
   delay(2500);
   OLED_write_WiFi_Network(SSID);

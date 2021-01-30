@@ -58,6 +58,18 @@ String processor(const String& var)
   //return String();
 }
 
+const char* processor1(const String& var)
+{
+  if(var == "SSID")
+  {
+    return ssid_ap;
+  }
+  else
+  {
+    return HOSTNAME;
+  }
+}
+
 void notFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "Lo sentimos Pagina no Encontrada");
 }
@@ -66,7 +78,7 @@ void notFound(AsyncWebServerRequest *request) {
 bool Wifi_Connection(String SSID, String PSW)
 {
   int  counter  =0;
-  bool rtn      =false;
+  bool rtn=false;
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID,PSW);
   OLED_write_init(SSID,ssid_ap);
@@ -75,10 +87,11 @@ bool Wifi_Connection(String SSID, String PSW)
     delay(500);
     counter++;
   }
-  if(counter<TRIES)
+  if(counter<=TRIES)
   {
     rtn=true;
     OLED_write_WiFi_OK();
+    OLED_write_done();
   }
   return rtn;
 }
@@ -191,8 +204,8 @@ void Wifi_AP_setup()
     Serial.println(inputMessage);
     #endif
 
-    //request->send(SPIFFS, "/index.html", String(), false, processor);
-    request->send(200, "text/plain", "Para volver a la carga de datos debes volver a\n www.monitoreoisolse.com ");
+    request->send(SPIFFS, "/index_return.html", String(), false, processor1);
+    //request->send(200, "text/plain", "Para volver a la carga de datos debes volver a\n www.monitoreoisolse.com ");
   }); 
   server.onNotFound(notFound);
   server.begin();
@@ -212,7 +225,18 @@ bool WiFi_Configuration()
   {
     OLED_write_WiFi_Fail(ssid_ap);
     Wifi_AP_setup();
+    all_set=false;
   }
+  else
+  {
+    WiFi_Incorrect=false;
+  }
+  return rtn;
+}
+
+bool WiFi_Connected()
+{
+  bool rtn = !WiFi_Incorrect;
   return rtn;
 }
 

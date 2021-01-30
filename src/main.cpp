@@ -17,7 +17,9 @@ int taskToken = 1;
 Coop_System System;
 
 // Task no.1: blink LED with 1 second delay.
-void loop1() {
+void loop1()
+{
+
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -28,9 +30,9 @@ void loop1() {
             continue;
         }
 
-        if(System.Wi_Fi_Status())
+        if (System.Wi_Fi_Status())
         {
-            if(System.Wi_Fi_Connection())
+            if (System.Wi_Fi_Connection())
             {
                 taskToken = 3;
             }
@@ -38,16 +40,15 @@ void loop1() {
         else
         {
             System.WiFi_Attention_OLED();
-            taskToken = 2;
         }
-        //taskToken = 2;
         taskSema.post();
     }
 }
 
 // Task no.2: blink LED with 0.25 second delay.
-void loop2() {
-    bool aux=false;
+void loop2()
+{
+    bool led = false;
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -58,23 +59,43 @@ void loop2() {
             continue;
         }
 
-        if(!aux)
-        {
-            digitalWrite(LED_BUILTIN, LOW);
-        }
-        else
+        if(!led)
         {
             digitalWrite(LED_BUILTIN, HIGH);
         }
-        aux=!aux; 
-        taskToken = 1;
+        else
+        {
+            digitalWrite(LED_BUILTIN, LOW);
+        }
+        led=!led;
+        taskToken = 3;
         taskSema.post();
-        yield();
+        delay(500);
     }
 }
 
 // Task no.3: blink LED with 0.05 second delay.
-void loop3() {
+void loop3()
+{
+    taskSema.wait();
+    if (3 != taskToken)
+    {
+        taskSema.post();
+        yield();
+        //continue;
+    }
+    bool fire_connect = false;
+
+    Serial.println("Firebase");
+    if (System.Firebase_Set_up())
+    {
+        fire_connect = true;
+    }
+    else
+    {
+        Serial.println("Error en Firebase");
+    }
+        taskSema.post();
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -84,52 +105,54 @@ void loop3() {
             yield();
             continue;
         }
-        for (int i = 0; i < 6; ++i)
+
+        if (fire_connect)
         {
-            digitalWrite(LED_BUILTIN, HIGH);
-
-            // IMPORTANT:
-            // When multiple tasks are running 'delay' passes control to
-            // other tasks while waiting and guarantees they get executed.
-            delay(250);
-
-            digitalWrite(LED_BUILTIN, LOW);
-            delay(250);
+            if (System.Firebase_enable())
+            {
+                if (!System.Firebase_upload())
+                {
+                    Serial.println("Server not reacheable");
+                }
+            }
+            else 
+            {
+                Serial.println("Server not enabled");
+            }
         }
-        taskToken = 1;
+        taskToken = 2;
         taskSema.post();
+        delay(500);
     }
 }
 
-BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 800 : STACKSIZE_8BIT>> task1("l1", loop1);
+BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1600 : STACKSIZE_8BIT>> task1("l1", loop1);
 BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 800 : STACKSIZE_8BIT>> task2("l2", loop2);
-BasicCoopTask<CoopTaskStackAllocatorFromLoop<sizeof(unsigned) >= 4 ? 800 : STACKSIZE_8BIT>> task3("l3", loop3, sizeof(unsigned) >= 4 ? 800 : STACKSIZE_8BIT);
+BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 6000 : STACKSIZE_8BIT>> task3("l3", loop3);
+//BasicCoopTask<CoopTaskStackAllocatorFromLoop<sizeof(unsigned) >= 4 ? 4000 : STACKSIZE_8BIT>> task3("l3", loop3, sizeof(unsigned) >= 4 ? 4000 : STACKSIZE_8BIT);
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
     // Setup the 3 pins as OUTPUT
     pinMode(LED_BUILTIN, OUTPUT);
 
-    if(!System.Start())
+    if (System.Start())
     {
-        Serial.println(F("Error durante la inicializacion"));
-        digitalWrite(LED_BUILTIN, LOW);
-        for(;;);
+        taskToken = 3;
     }
-    #ifdef DEBUG
+#ifdef DEBUG
     Serial.println(F("Sistema Inicializado Correctamente"));
-    #endif
+#endif
     // Add "loop1", "loop2" and "loop3" to CoopTask scheduling.
-    // "loop" is always started by default, and is not under the control of CoopTask. 
+    // "loop" is always started by default, and is not under the control of CoopTask.
     task1.scheduleTask();
     task2.scheduleTask();
     task3.scheduleTask();
-
-
-
 }
 
-void loop() {
+void loop()
+{
     // loops forever by default
     runCoopTasks();
 }
