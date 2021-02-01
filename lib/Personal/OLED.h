@@ -18,8 +18,25 @@
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+
+typedef enum{ START, DONE, SETUP, INIT, WIFI_OK, WEB_CONFIG, F_ENABLED, F_START, F_THINK, F_DONE,
+WIFI_APM, WIFI_NET, WIFI_ATT, WIFI_FAIL  } OLED_message_t;
+
+typedef struct oled_event_s{
+	OLED_message_t oled_msg;
+  int time_d;
+}oled_event_t;
+
 bool msg_flag=false;
 
+void* Print_Message[20];
+
+/*
+bool Print_Upload()
+{
+
+}
+*/
 void OLED_write_start()
 {
   display.clearDisplay();
@@ -94,7 +111,6 @@ void OLED_write_WiFi_OK()
   display.display();
   delay(2500);  
 }
-
 
 void OLED_write_Web_Config()
 {
@@ -215,7 +231,5 @@ void OLED_write_WiFi_Fail(String SSID)
   delay(2500);
   OLED_write_WiFi_Network(SSID);
 }
-
-
 
 #endif
