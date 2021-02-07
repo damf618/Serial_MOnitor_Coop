@@ -14,15 +14,18 @@
 #endif
 
 CoopSemaphore taskSema(1, 1);
+CoopSemaphore FireSema(0, 1);
+CoopSemaphore OLEDSema(0, 1);
+
 int taskToken = 1;
 
 Coop_System System;
 unsigned long time_rev = 0;
-bool led=false;
+bool led = false;
 
 void Blinky_Blinky()
 {
-    if (millis() - time_rev >= 300)
+    if (millis() - time_rev >= 100)
     {
         time_rev = millis();
         if (!led)
@@ -33,7 +36,7 @@ void Blinky_Blinky()
         {
             digitalWrite(LED_BUILTIN, LOW);
         }
-        led=!led;
+        led = !led;
     }
 }
 
@@ -69,20 +72,16 @@ void loop1()
 // Task no.2: blink LED with 0.25 second delay.
 void loop2()
 {
+    OLEDSema.wait();
+    //OLEDSema.wait();
+    Serial.print("Here we are2\n");
     for (;;) // explicitly run forever without returning
     {
-        taskSema.wait();
-        if (2 != taskToken)
-        {
-            taskSema.post();
-            yield();
-            continue;
-        }
 
         System.Print_OLED();
-
-        taskToken = 3;
-        taskSema.post();
+        delay(500);
+        //taskToken = 3;
+        //taskSema.post();
     }
 }
 
@@ -141,52 +140,47 @@ void loop3()
             }
 #endif
         }
-        taskToken = 2;
+        //taskToken = 2;
         //taskToken = 4;
+        OLEDSema.post();
         taskSema.post();
+        FireSema.post();
+        delay(1000);
         yield();
     }
 }
 
 void loop4()
 {
-    taskSema.wait();
-    if (4 != taskToken)
-    {
-        taskSema.post();
-        yield();
-    }
-    Serial.print("Here we are");
+    FireSema.wait();
+    //FireSema.wait();
+    Serial.print("Here we are\n");
     System.FACP_Setup();
-    Serial.print("There we were");
-    taskSema.post();
+    Serial.print("There we were\n");
+    //taskSema.post();
     for (;;) // explicitly run forever without returning
     {
-        taskSema.wait();
-        if (4 != taskToken)
-        {
-            taskSema.post();
-            yield();
-            continue;
-        }
+        FireSema.wait();
 
+        Serial.print("- Fails -\n");
         System.get_Fails();
         delay(5000);
         System.OLED_Events();
 
+        Serial.print("- Alarms -\n");
         System.get_Alarms();
         delay(5000);
         System.OLED_Events();
 
-        taskToken = 2;
-        taskSema.post();
+        //taskToken = 2;
+        //taskSema.post();
         yield();
     }
 }
 
-BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1200 : STACKSIZE_8BIT>> task4("l4", loop4);
+BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1600 : STACKSIZE_8BIT>> task4("l4", loop4);
 BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1600 : STACKSIZE_8BIT>> task1("l1", loop1);
-BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1200 : STACKSIZE_8BIT>> task2("l2", loop2);
+BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1600 : STACKSIZE_8BIT>> task2("l2", loop2);
 BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 4000 : STACKSIZE_8BIT>> task3("l3", loop3);
 
 //BasicCoopTask<CoopTaskStackAllocatorFromLoop<sizeof(unsigned) >= 4 ? 4000 : STACKSIZE_8BIT>> task3("l3", loop3, sizeof(unsigned) >= 4 ? 4000 : STACKSIZE_8BIT);
