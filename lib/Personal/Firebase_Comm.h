@@ -11,6 +11,8 @@
 #define FIREBASE_AUTH "N6jkN9OnR7bC8wHNw3VsPl8afBikm0ZzIYihTPIM"
 #define USER_FLAG "User Created"
 
+#define TEST
+
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
@@ -22,9 +24,10 @@ void prepareDatabaseRules(const char *path, const char *var, const char *readVal
 {
   //We will sign in using legacy token (database secret) for full RTDB access
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-
+  #ifdef TEST
   Serial.println("------------------------------------");
   Serial.println("Read database ruless...");
+  #endif
   if (Firebase.getRules(fbdo))
   {
     FirebaseJsonData result;
@@ -67,22 +70,31 @@ void prepareDatabaseRules(const char *path, const char *var, const char *readVal
       if (wr)
         js.add(".write", writeVal);
 
+      #ifdef TEST
       Serial.println("Set database rules...");
+      #endif
+
       json.set(_path, js);
       String rules = "";
       json.toString(rules, true);
+      #ifdef TEST
       if (!Firebase.setRules(fbdo, rules))
       {
         Serial.println("Failed to edit the database rules, " + fbdo.errorReason());
       }
+      #else
+      Firebase.setRules(fbdo, rules);
+      #endif
     }
 
     json.clear();
   }
+  #ifdef TEST
   else
   {
     Serial.println("Failed to read the database rules, " + fbdo.errorReason());
   }
+  #endif
 }
 
 void printResult(FirebaseData &data)
@@ -284,22 +296,31 @@ bool Firebase_Set_Up()
 {
   bool signupOK = false;
   String user_created;
+  #ifdef TEST
   Serial.println("Firebase config");
+  #endif
+
   config.host = FIREBASE_HOST;
   config.api_key = API_KEY;
 
+  #ifdef TEST
   Serial.println("Firebase String");
+  #endif
   String user_firebase = readFile(SPIFFS, "/USERNAME.txt");
   String psw_firebase = readFile(SPIFFS, "/USER_PSW.txt");
 
+  #ifdef TEST
   Serial.println("Firebase auth");
   Serial.println(user_firebase.c_str());
   Serial.println(psw_firebase.c_str());
+  #endif
 
   auth.user.email = user_firebase.c_str();
   auth.user.password = psw_firebase.c_str();
 
+  #ifdef TEST
   Serial.println("Firebase wifi");
+  #endif
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
@@ -316,10 +337,14 @@ bool Firebase_Set_Up()
   //tiny, small, medium, large and unlimited.
   //Size and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
   Firebase.setwriteSizeLimit(fbdo, "medium");
-
+  
+  
   OLED_write_Firebase_Start();
 
+  #ifdef TEST
   Serial.println("Firebase signup");
+  Serial.println("THINK1");
+  #endif
   OLED_write_Firebase_Think();
 
   //user created previosuly?
@@ -329,32 +354,49 @@ bool Firebase_Set_Up()
   {
     if (Firebase.signUp(&config, &auth, user_firebase.c_str(), psw_firebase.c_str()))
     {
+      #ifdef TEST
       Serial.println("Success");
+      #endif
       writeFile(SPIFFS, "/USER.txt", USER_FLAG);
     }
+    #ifdef TEST
     else
     {
       Serial.printf("Failed, %s\n", config.signer.signupError.message.c_str());
     }
+    #endif
   }
+  #ifdef TEST
   else
   {
     Serial.println("User already created");
   }
+  #endif
 
   String Firebase_Div = "/";
   String base_path = Firebase_Div + readFile(SPIFFS, "/FACILITY.txt") + Firebase_Div;
+  #ifdef TEST
   Serial.println("Facility_Name");
   Serial.println(base_path);
+  #endif
   String var = "$user";
   String val = "(auth.uid === $user)";
+  #ifdef TEST
+  Serial.println("THINK2");
+  #endif
   OLED_write_Firebase_Think();
   prepareDatabaseRules(base_path.c_str(), var.c_str(), val.c_str(), val.c_str());
+  #ifdef TEST
+  Serial.println("THINK3");
+  #endif
   OLED_write_Firebase_Think();
 
   path = base_path;
+  #ifdef TEST
   Serial.println("Path");
   Serial.println(path);
+  Serial.println("THINK4");
+  #endif
   OLED_write_Firebase_Think();
   Firebase.begin(&config, &auth);
   path += auth.token.uid.c_str();
@@ -367,8 +409,9 @@ bool Firebase_First_Push()
 {
   bool rtn = false;
   struct token_info_t info = Firebase.authTokenInfo();
+  
+  #ifdef TEST
   Serial.println("------------------------------------");
-
   if (info.status == token_status_error)
   {
     Serial.printf("Token info: type = %s, status = %s\n", getTokenType(info).c_str(), getTokenStatus(info).c_str());
@@ -382,9 +425,12 @@ bool Firebase_First_Push()
   Serial.println("------------------------------------");
   Serial.println("Set int test...");
   //CUIDADO SI YA EXISTE GENERA FALLAS EN EL SISTEMA
+  #endif
+
   if (Firebase.set(fbdo, path + "/Usuario", auth.token.uid.c_str()))
   {
     rtn = true;
+    #ifdef TEST
     Serial.println("PASSED");
     Serial.println("PATH: " + fbdo.dataPath());
     Serial.println("TYPE: " + fbdo.dataType());
@@ -393,7 +439,9 @@ bool Firebase_First_Push()
     printResult(fbdo);
     Serial.println("------------------------------------");
     Serial.println();
+    #endif
   }
+  #ifdef TEST
   else
   {
     Serial.println("FAILED");
@@ -401,6 +449,7 @@ bool Firebase_First_Push()
     Serial.println("------------------------------------");
     Serial.println();
   }
+  #endif
   return rtn;
 }
 
@@ -423,6 +472,7 @@ bool dataupload()
   if (Firebase.set(fbdo, path + "/int", count++))
   {
     rtn = true;
+    #ifdef TEST
     Serial.println("PASSED");
     Serial.println("PATH: " + fbdo.dataPath());
     Serial.println("TYPE: " + fbdo.dataType());
@@ -431,7 +481,9 @@ bool dataupload()
     printResult(fbdo);
     Serial.println("------------------------------------");
     Serial.println();
+    #endif
   }
+  #ifdef TEST
   else
   {
     Serial.println("FAILED");
@@ -439,6 +491,7 @@ bool dataupload()
     Serial.println("------------------------------------");
     Serial.println();
   }
+  #endif
   return rtn;
 }
 

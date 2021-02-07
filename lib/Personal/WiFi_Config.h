@@ -131,10 +131,10 @@ void Wifi_AP_setup()
   WiFi.softAP(ssid_ap, password_ap);
   dnsServer.setErrorReplyCode(AsyncDNSReplyCode::ServerFailure);
   dnsServer.start(DNS_PORT, HOSTNAME, apIP); 
-  //#ifdef DEBUG
+  #ifdef TEST
   Serial.print("Direccion IP: ");
   Serial.println(apIP);
-  //#endif
+  #endif
   OLED_write_WiFi_AP(HOSTNAME);
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -200,7 +200,7 @@ void Wifi_AP_setup()
       all_set=true;
     }
 
-    #ifdef DEBUG    
+    #ifdef TEST    
     Serial.println(inputMessage);
     #endif
 

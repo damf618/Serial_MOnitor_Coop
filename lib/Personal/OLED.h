@@ -15,28 +15,36 @@
 #define ANIMATION_TIMES 5
 #define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define WEBPAGE "www.monitorisolse.com"
+#define MSG_NUMBER 20
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
-typedef enum{ START, DONE, SETUP, INIT, WIFI_OK, WEB_CONFIG, F_ENABLED, F_START, F_THINK, F_DONE,
-WIFI_APM, WIFI_NET, WIFI_ATT, WIFI_FAIL  } OLED_message_t;
+typedef enum{ WEB_CONFIG, F_ENABLED  } OLED_message_t;
 
 typedef struct oled_event_s{
 	OLED_message_t oled_msg;
-  int time_d;
+  void* arg;
 }oled_event_t;
 
 bool msg_flag=false;
 
-void* Print_Message[20];
+oled_event_t Print_Message[MSG_NUMBER];
+int counter=-1;
 
-/*
-bool Print_Upload()
+bool Print_Upload(oled_event_t event)
 {
-
+  bool rtn = false;
+  if(counter<MSG_NUMBER)
+  {
+    counter++;
+    Print_Message[counter]=event;
+    rtn =true;
+  }
+  return rtn;
 }
-*/
+
+
 void OLED_write_start()
 {
   display.clearDisplay();
@@ -69,7 +77,7 @@ bool OLED_setup()
   bool rtn = true;
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
   { // Address 0x3C for 128x32
-    #ifdef DEBUG
+    #ifdef TEST
     Serial.println(F("Falla en conexion con Display OLED "));
     #endif
     rtn = false;
@@ -231,5 +239,31 @@ void OLED_write_WiFi_Fail(String SSID)
   delay(2500);
   OLED_write_WiFi_Network(SSID);
 }
+
+void Print_Selector(oled_event_t event)
+{
+    switch(event.oled_msg)
+  {
+    case WEB_CONFIG:
+      OLED_write_Web_Config();
+      break;
+    case F_ENABLED:
+      OLED_write_Firebase_Enabled();
+      break;
+  }
+}
+
+bool Print_Download()
+{
+  bool rtn = false;
+  if(counter>=0)
+  {
+    Print_Selector(Print_Message[counter]);
+    counter--;
+    rtn = true;
+  }
+  return rtn;
+}
+
 
 #endif
