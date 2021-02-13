@@ -20,7 +20,7 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
-typedef enum{ WEB_CONFIG, F_ENABLED  } OLED_message_t;
+typedef enum{ WEB_CONFIG, F_ENABLED, F_START  } OLED_message_t;
 
 typedef struct oled_event_s{
 	OLED_message_t oled_msg;

@@ -1,11 +1,12 @@
 #include <Arduino.h>
 
+#define TEST
+
 // Include CoopTask since we want to manage multiple tasks.
 #include <CoopTask.h>
 #include <CoopSemaphore.h>
+#include <CoopMutex.h>
 #include <Coop_Serial_System.h>
-
-#define TEST
 
 #if defined(ARDUINO_AVR_MICRO)
 #define STACKSIZE_8BIT 92
@@ -16,6 +17,7 @@
 CoopSemaphore taskSema(1, 1);
 CoopSemaphore FireSema(0, 1);
 CoopSemaphore OLEDSema(0, 1);
+CoopMutex OLEDMutex;
 
 int taskToken = 1;
 
@@ -25,7 +27,7 @@ bool led = false;
 
 void Blinky_Blinky()
 {
-    if (millis() - time_rev >= 100)
+    if (millis() - time_rev >= 500)
     {
         time_rev = millis();
         if (!led)
@@ -43,7 +45,6 @@ void Blinky_Blinky()
 // Task no.1: blink LED with 1 second delay.
 void loop1()
 {
-
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -72,14 +73,15 @@ void loop1()
 // Task no.2: blink LED with 0.25 second delay.
 void loop2()
 {
-    OLEDSema.wait();
-    //OLEDSema.wait();
-    Serial.print("Here we are2\n");
     for (;;) // explicitly run forever without returning
     {
-
-        System.Print_OLED();
-        delay(500);
+        OLEDSema.wait();
+        {
+            CoopMutexLock serialLock(OLEDMutex);
+            System.Print_OLED();
+        }
+        yield();
+        //delay(1000);
         //taskToken = 3;
         //taskSema.post();
     }
@@ -88,28 +90,8 @@ void loop2()
 // Task no.3: blink LED with 0.05 second delay.
 void loop3()
 {
-    taskSema.wait();
-    if (3 != taskToken)
-    {
-        taskSema.post();
-        yield();
-    }
     bool fire_connect = false;
 
-#ifdef TEST
-    Serial.println("Firebase");
-#endif
-    if (System.Firebase_Set_up())
-    {
-        fire_connect = true;
-    }
-#ifdef TEST
-    else
-    {
-        Serial.println("Error en Firebase");
-    }
-#endif
-    taskSema.post();
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -119,7 +101,7 @@ void loop3()
             yield();
             continue;
         }
-
+        
         if (fire_connect)
         {
             if (System.Firebase_enable())
@@ -139,55 +121,88 @@ void loop3()
                 Serial.println("Server not enabled");
             }
 #endif
+            OLEDSema.post();
+            FireSema.post();
+            delay(1000);
         }
-        //taskToken = 2;
-        //taskToken = 4;
-        OLEDSema.post();
-        taskSema.post();
-        FireSema.post();
-        delay(1000);
-        yield();
+        else
+        {
+            if (System.Firebase_Set_up())
+            {
+                fire_connect = true;
+            }
+            else
+            {
+#ifdef TEST
+                Serial.println("Error en Firebase");
+#endif
+                delay(3000);
+            }
+        }
+    taskSema.post();
+    yield();
     }
 }
 
 void loop4()
 {
     FireSema.wait();
-    //FireSema.wait();
-    Serial.print("Here we are\n");
     System.FACP_Setup();
-    Serial.print("There we were\n");
-    //taskSema.post();
+    FireSema.post();
     for (;;) // explicitly run forever without returning
     {
         FireSema.wait();
-
+#ifdef TEST
         Serial.print("- Fails -\n");
+#endif
         System.get_Fails();
-        delay(5000);
-        System.OLED_Events();
-
-        Serial.print("- Alarms -\n");
-        System.get_Alarms();
-        delay(5000);
-        System.OLED_Events();
-
-        //taskToken = 2;
         //taskSema.post();
+        delay(3000);
+        /*
+        {
+            CoopMutexLock serialLock(OLEDMutex);
+            System.OLED_Events();
+        }
+        */
+
+#ifdef TEST
+        Serial.print("- Alarms -\n");
+#endif
+        System.get_Alarms();
+        //taskSema.post();
+        /*
+        delay(3000);
+        {
+            CoopMutexLock serialLock(OLEDMutex);
+            System.OLED_Events();
+        }
+        */
         yield();
     }
 }
 
-BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1600 : STACKSIZE_8BIT>> task4("l4", loop4);
+BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 2400 : STACKSIZE_8BIT>> task4("l4", loop4);
 BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1600 : STACKSIZE_8BIT>> task1("l1", loop1);
-BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 1600 : STACKSIZE_8BIT>> task2("l2", loop2);
-BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 4000 : STACKSIZE_8BIT>> task3("l3", loop3);
-
+BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 2000 : STACKSIZE_8BIT>> task2("l2", loop2);
+BasicCoopTask<CoopTaskStackAllocatorAsMember<sizeof(unsigned) >= 4 ? 6000 : STACKSIZE_8BIT>> task3("l3", loop3);
+//2000
+//1200
+//1200
+//4000
 //BasicCoopTask<CoopTaskStackAllocatorFromLoop<sizeof(unsigned) >= 4 ? 4000 : STACKSIZE_8BIT>> task3("l3", loop3, sizeof(unsigned) >= 4 ? 4000 : STACKSIZE_8BIT);
+
+//INtenta ejecutar el Firebase Negin en el ciclo principal de esa forma no se requiere memoria de stack para ello.
 
 void setup()
 {
     Serial.begin(115200);
+    //Serial.swap(); NUevos pines y nos libramos del SerialDEBUG
+    /*
+Serial utiliza UART0, el cual está mapeado a los pines GPIO1 (TX) y GPIO3 (RX).
+El Serial puede ser redirigido a GPIO15 (TX) y GPIO13 (RX) llamando a Serial.swap()
+después de Serial.begin.
+*/
+
     // Setup the 3 pins as OUTPUT
     pinMode(LED_BUILTIN, OUTPUT);
 
@@ -197,6 +212,8 @@ void setup()
     }
 #ifdef TEST
     Serial.println(F("Sistema Inicializado Correctamente"));
+    Serial.print(F("TaskToken: "));
+    Serial.println(taskToken);
 #endif
     // Add "loop1", "loop2" and "loop3" to CoopTask scheduling.
     // "loop" is always started by default, and is not under the control of CoopTask.
@@ -211,4 +228,23 @@ void loop()
     // loops forever by default
     runCoopTasks();
     Blinky_Blinky();
+    /*
+    if (5 == taskToken)
+    {
+#ifdef TEST
+        Serial.println("Firebase");
+#endif
+        if (System.Firebase_Set_up())
+        {
+            taskToken = 3;
+        }
+#ifdef TEST
+        else
+        {
+            Serial.println("Error en Firebase");
+        }
+#endif
+
+    }
+    */
 }

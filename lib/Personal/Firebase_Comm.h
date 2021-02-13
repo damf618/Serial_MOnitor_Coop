@@ -11,19 +11,20 @@
 #define FIREBASE_AUTH "N6jkN9OnR7bC8wHNw3VsPl8afBikm0ZzIYihTPIM"
 #define USER_FLAG "User Created"
 
-#define TEST
+static FirebaseAuth auth;
+static FirebaseConfig config;
+static FirebaseData fbdo;
 
-FirebaseData fbdo;
-FirebaseAuth auth;
-FirebaseConfig config;
 
 String path = "";
 int count = 0;
+String path_add = ""; 
 
-void prepareDatabaseRules(const char *path, const char *var, const char *readVal, const char *writeVal)
+void prepareDatabaseRules( const char *var, const char *readVal, const char *writeVal)
 {
   //We will sign in using legacy token (database secret) for full RTDB access
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+  path = readFile(SPIFFS, "/FACILITY.txt");
   #ifdef TEST
   Serial.println("------------------------------------");
   Serial.println("Read database ruless...");
@@ -294,6 +295,7 @@ String getTokenError(struct token_info_t info)
 
 bool Firebase_Set_Up()
 {
+  
   bool signupOK = false;
   String user_created;
   #ifdef TEST
@@ -308,15 +310,18 @@ bool Firebase_Set_Up()
   #endif
   String user_firebase = readFile(SPIFFS, "/USERNAME.txt");
   String psw_firebase = readFile(SPIFFS, "/USER_PSW.txt");
-
+  char* Auth_Email=(char*)user_firebase.c_str();
+  char* Auth_Password = (char*)psw_firebase.c_str();
   #ifdef TEST
   Serial.println("Firebase auth");
-  Serial.println(user_firebase.c_str());
-  Serial.println(psw_firebase.c_str());
+  Serial.println(Auth_Email);
+  Serial.println(Auth_Password);
   #endif
 
-  auth.user.email = user_firebase.c_str();
-  auth.user.password = psw_firebase.c_str();
+  auth.user.email = "DAMF618@GMAIL.COM";
+  auth.user.password = "12345678";
+  //auth.user.email = Auth_Email;
+  //auth.user.password = Auth_Password;
 
   #ifdef TEST
   Serial.println("Firebase wifi");
@@ -338,7 +343,6 @@ bool Firebase_Set_Up()
   //Size and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
   Firebase.setwriteSizeLimit(fbdo, "medium");
   
-  
   OLED_write_Firebase_Start();
 
   #ifdef TEST
@@ -350,6 +354,7 @@ bool Firebase_Set_Up()
   //user created previosuly?
   user_created = readFile(SPIFFS, "/USER.txt");
   String aux = USER_FLAG;
+  
   if ( aux != user_created)
   {
     if (Firebase.signUp(&config, &auth, user_firebase.c_str(), psw_firebase.c_str()))
@@ -365,42 +370,55 @@ bool Firebase_Set_Up()
       Serial.printf("Failed, %s\n", config.signer.signupError.message.c_str());
     }
     #endif
-  }
-  #ifdef TEST
-  else
-  {
-    Serial.println("User already created");
-  }
-  #endif
 
-  String Firebase_Div = "/";
-  String base_path = Firebase_Div + readFile(SPIFFS, "/FACILITY.txt") + Firebase_Div;
-  #ifdef TEST
-  Serial.println("Facility_Name");
-  Serial.println(base_path);
-  #endif
   String var = "$user";
   String val = "(auth.uid === $user)";
   #ifdef TEST
   Serial.println("THINK2");
   #endif
   OLED_write_Firebase_Think();
-  prepareDatabaseRules(base_path.c_str(), var.c_str(), val.c_str(), val.c_str());
+  prepareDatabaseRules(var.c_str(), val.c_str(), val.c_str());
+  }
+  else
+  {
+    OLED_write_Firebase_Think();
+    #ifdef TEST
+    Serial.println("User already created");
+    #endif
+  }
+  
   #ifdef TEST
   Serial.println("THINK3");
   #endif
   OLED_write_Firebase_Think();
 
-  path = base_path;
   #ifdef TEST
   Serial.println("Path");
   Serial.println(path);
   Serial.println("THINK4");
   #endif
   OLED_write_Firebase_Think();
+  #ifdef TEST
+  Serial.println("THINK5");
+  #endif
   Firebase.begin(&config, &auth);
-  path += auth.token.uid.c_str();
+  #ifdef TEST
+  Serial.println("THINK7");
+  #endif
+  String Firebase_Div = "/";
+  String read = "/";
+  path = auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
+   
+  #ifdef TEST
+  Serial.print("Facility_Name: ");
+  Serial.println(path);
+  #endif  
+  
+
   signupOK = true;
+  #ifdef TEST
+  Serial.println("THINK6");
+  #endif
   OLED_write_Firebase_Done();
   return signupOK;
 }
@@ -461,6 +479,15 @@ int Firebase_Enable()
   {
     rtn = fbdo.intData();
   }
+  #ifdef TEST
+  else
+  {
+    Serial.println("FAILED");
+    Serial.println("REASON: " + fbdo.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println();
+  }
+  #endif
   return rtn;
 }
 
