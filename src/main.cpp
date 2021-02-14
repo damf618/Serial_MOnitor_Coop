@@ -24,6 +24,8 @@ int taskToken = 1;
 Coop_System System;
 unsigned long time_rev = 0;
 bool led = false;
+bool Serial_Event=false;
+unsigned long time1;
 
 void Blinky_Blinky()
 {
@@ -92,6 +94,22 @@ void loop3()
 {
     bool fire_connect = false;
 
+    while(!fire_connect)
+    {
+        taskSema.wait();
+        if (3 != taskToken)
+        {
+            taskSema.post();
+            yield();
+            continue;
+        }
+        if(System.Firebase_Set_up())
+        {
+            fire_connect=true;
+            taskSema.post();
+        }
+    }
+
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -101,7 +119,7 @@ void loop3()
             yield();
             continue;
         }
-        
+
         if (fire_connect)
         {
             if (System.Firebase_enable())
@@ -115,19 +133,21 @@ void loop3()
                 System.Firebase_upload();
 #endif
             }
-#ifdef TEST
             else
             {
+                #ifdef TEST
                 Serial.println("Server not enabled");
+                #endif
+                fire_connect=false;
             }
-#endif
+
             OLEDSema.post();
             FireSema.post();
-            delay(1000);
+            //delay(10000);
         }
         else
         {
-            if (System.Firebase_Set_up())
+            if (System.Firebase_Set_System_up())
             {
                 fire_connect = true;
             }
@@ -135,12 +155,17 @@ void loop3()
             {
 #ifdef TEST
                 Serial.println("Error en Firebase");
+                if(WiFi.status() != WL_CONNECTED)
+                {
+                    Serial.println("No hay conexion");
+                }
 #endif
                 delay(3000);
             }
+            taskSema.post();
         }
-    taskSema.post();
-    yield();
+        //taskSema.post();
+        yield();
     }
 }
 
@@ -156,8 +181,9 @@ void loop4()
         Serial.print("- Fails -\n");
 #endif
         System.get_Fails();
-        //taskSema.post();
-        delay(3000);
+        Serial_Event=true;
+        delay(2000);
+        Serial_Event=false;
         /*
         {
             CoopMutexLock serialLock(OLEDMutex);
@@ -169,15 +195,35 @@ void loop4()
         Serial.print("- Alarms -\n");
 #endif
         System.get_Alarms();
-        //taskSema.post();
-        /*
+        Serial_Event=true;
         delay(3000);
+        Serial_Event=false;
+        /*
         {
             CoopMutexLock serialLock(OLEDMutex);
             System.OLED_Events();
         }
         */
+        taskSema.post();
         yield();
+    }
+}
+
+void SerialEvent()
+{
+    if (Serial_Event)
+    {
+        if (millis() - time1 >= 1000)
+        {
+            time1 = millis();
+            Serial.print(".");
+        }
+    if (Serial.available())
+    {
+        Serial.print((char)Serial.read());
+    }
+    
+    
     }
 }
 
@@ -221,6 +267,7 @@ después de Serial.begin.
     task2.scheduleTask();
     task3.scheduleTask();
     task4.scheduleTask();
+    time1 = millis();
 }
 
 void loop()
@@ -228,6 +275,7 @@ void loop()
     // loops forever by default
     runCoopTasks();
     Blinky_Blinky();
+    SerialEvent();
     /*
     if (5 == taskToken)
     {

@@ -1,8 +1,10 @@
 #ifndef Firebase_Comm_h
 #define Firebase_Comm_h
 
-#include <ESP8266WiFi.h>
+
 #include <FirebaseESP8266.h>
+#include <ESP8266WiFi.h>
+//#include <WiFiManager.h> 
 #include <SPIFFS_Serial_Monitor.h>
 #include <OLED.h>
 
@@ -338,10 +340,10 @@ bool Firebase_Set_Up()
 
   //Set database read timeout to 1 minute (max 15 minutes)
   //Firebase.setReadTimeout(fbdo, 1000 * 60);
-  Firebase.setReadTimeout(fbdo, 1000 * 30);
+  Firebase.setReadTimeout(fbdo, 1000 * 60);
   //tiny, small, medium, large and unlimited.
   //Size and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
-  Firebase.setwriteSizeLimit(fbdo, "medium");
+  Firebase.setwriteSizeLimit(fbdo, "large");
   
   OLED_write_Firebase_Start();
 
@@ -407,7 +409,7 @@ bool Firebase_Set_Up()
   #endif
   String Firebase_Div = "/";
   String read = "/";
-  path = auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
+  path = Firebase_Div + auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
    
   #ifdef TEST
   Serial.print("Facility_Name: ");
@@ -520,6 +522,30 @@ bool dataupload()
   }
   #endif
   return rtn;
+}
+
+bool Firebase_Fix()
+{
+  bool rtn = false;
+  Firebase.begin(&config, &auth);
+  #ifdef TEST
+  struct token_info_t info = Firebase.authTokenInfo();
+  if (info.status == token_status_error)
+  {
+    Serial.printf("Token info: type = %s, status = %s\n", getTokenType(info).c_str(), getTokenStatus(info).c_str());
+    Serial.printf("Token error: %s\n\n", getTokenError(info).c_str());
+  }
+  else
+  {
+    Serial.printf("Token info: type = %s, status = %s\n\n", getTokenType(info).c_str(), getTokenStatus(info).c_str());
+  }
+  if(Firebase_Enable())
+  {
+    rtn = true;
+    Serial.println("Conexion Firebase Arreglado");
+  }
+  return rtn;
+  #endif
 }
 
 #endif

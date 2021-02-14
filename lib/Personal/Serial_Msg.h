@@ -47,8 +47,8 @@ void serialEvent()
   while (timecheck1 - timecheck <= TIME_WAIT)
   {
     timecheck1 = millis();
-    Serial.print(".");
-    delay(1);
+    //Serial.print(".");
+    //delay(1);
     // get the new byte:
     if (Serial.available())
     {
@@ -134,7 +134,7 @@ bool Simplex_Fail_List()
 {
   bool rtn = true;
   Serial.println("L T");
-  serialEvent();
+  //serialEvent();
   return rtn;
 }
 
@@ -142,7 +142,7 @@ bool Simplex_Alarm_List()
 {
   bool rtn = true;
   Serial.println("L F");
-  serialEvent();
+  //serialEvent();
   return rtn;
 }
 

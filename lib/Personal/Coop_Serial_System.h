@@ -102,6 +102,16 @@ public:
     return rtn;
   }
 
+  bool Firebase_Set_System_up()
+  {
+    bool rtn = false;
+    #ifdef TEST
+    Serial.println("Firebase FIX");
+    #endif
+    rtn = Firebase_Fix();
+    return rtn;
+  }
+
   bool Firebase_upload()
   {
     bool rtn = false;
