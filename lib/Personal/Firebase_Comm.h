@@ -27,6 +27,8 @@ void prepareDatabaseRules( const char *var, const char *readVal, const char *wri
   //We will sign in using legacy token (database secret) for full RTDB access
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
   path = readFile(SPIFFS, "/FACILITY.txt");
+  //String Firebase_Div = "/";
+  //path = auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
   #ifdef TEST
   Serial.println("------------------------------------");
   Serial.println("Read database ruless...");
@@ -340,7 +342,7 @@ bool Firebase_Set_Up()
 
   //Set database read timeout to 1 minute (max 15 minutes)
   //Firebase.setReadTimeout(fbdo, 1000 * 60);
-  Firebase.setReadTimeout(fbdo, 1000 * 60);
+  Firebase.setReadTimeout(fbdo, 1000 * 120);
   //tiny, small, medium, large and unlimited.
   //Size and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
   Firebase.setwriteSizeLimit(fbdo, "large");
@@ -403,14 +405,32 @@ bool Firebase_Set_Up()
   #ifdef TEST
   Serial.println("THINK5");
   #endif
+  
   Firebase.begin(&config, &auth);
+  
+  
+
   #ifdef TEST
   Serial.println("THINK7");
   #endif
   String Firebase_Div = "/";
-  String read = "/";
-  path = Firebase_Div + auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
-   
+  path = auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
+
+  /*
+  #ifdef TEST
+  if (!Firebase.beginStream(fbdo, path))
+  {
+    Serial.println("------------------------------------");
+    Serial.println("Can't begin stream connection...");
+    Serial.println("REASON: " + fbdo.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println();
+  }
+  #else
+    Firebase.beginStream(fbdo, path);
+  #endif
+  */
+
   #ifdef TEST
   Serial.print("Facility_Name: ");
   Serial.println(path);
@@ -427,8 +447,11 @@ bool Firebase_Set_Up()
 
 bool Firebase_First_Push()
 {
+  
   bool rtn = false;
+  
   struct token_info_t info = Firebase.authTokenInfo();
+  
   
   #ifdef TEST
   Serial.println("------------------------------------");
@@ -441,13 +464,15 @@ bool Firebase_First_Push()
   {
     Serial.printf("Token info: type = %s, status = %s\n\n", getTokenType(info).c_str(), getTokenStatus(info).c_str());
   }
-
+  
   Serial.println("------------------------------------");
   Serial.println("Set int test...");
+  Serial.print("Set Path: ");
+  Serial.println(path);
   //CUIDADO SI YA EXISTE GENERA FALLAS EN EL SISTEMA
   #endif
 
-  if (Firebase.set(fbdo, path + "/Usuario", auth.token.uid.c_str()))
+  if (Firebase.setString(fbdo, path + "/Usuario", auth.token.uid.c_str()))
   {
     rtn = true;
     #ifdef TEST
@@ -479,7 +504,22 @@ int Firebase_Enable()
   String enable_path = path + "/Enable";
   if (Firebase.getInt(fbdo, enable_path))
   {
-    rtn = fbdo.intData();
+    if (fbdo.dataType() == "int")
+    {
+      #ifdef TEST
+        Serial.print(F("DATA READ from Firebase: "));
+        Serial.println(fbdo.intData());
+      #endif
+      rtn = fbdo.intData();
+    }    
+    else
+    {
+      #ifdef TEST
+      Serial.print(F("Invalid Data Received from Firebase"));
+      #endif
+      rtn=1;
+    }
+    
   }
   #ifdef TEST
   else
@@ -497,8 +537,10 @@ bool dataupload()
 {
   bool rtn = false;
   struct token_info_t info = Firebase.authTokenInfo();
-
-  if (Firebase.set(fbdo, path + "/int", count++))
+  #ifdef TEST
+    Serial.println("Firebase Data Upload");
+  #endif
+  if (Firebase.setInt(fbdo, path + "/int", count++))
   {
     rtn = true;
     #ifdef TEST
@@ -521,6 +563,40 @@ bool dataupload()
     Serial.println();
   }
   #endif
+
+/*
+
+if (!Firebase.readStream(fbdo))
+  {
+    Serial.println("------------------------------------");
+    Serial.println("Can't read stream data...");
+    Serial.println("REASON: " + fbdo.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println();
+  }
+
+  if (fbdo.streamTimeout())
+  {
+    Serial.println("Stream timeout, resume streaming...");
+    Serial.println();
+  }
+
+  if (fbdo.streamAvailable())
+  {
+    Serial.println("------------------------------------");
+    Serial.println("Stream Data available...");
+    Serial.println("STREAM PATH: " + fbdo.streamPath());
+    Serial.println("EVENT PATH: " + fbdo.dataPath());
+    Serial.println("DATA TYPE: " + fbdo.dataType());
+    Serial.println("EVENT TYPE: " + fbdo.eventType());
+    Serial.print("VALUE: ");
+    printResult(fbdo);
+    Serial.println("------------------------------------");
+    Serial.println();
+  }
+  
+*/
+
   return rtn;
 }
 
@@ -528,6 +604,9 @@ bool Firebase_Fix()
 {
   bool rtn = false;
   Firebase.begin(&config, &auth);
+  //Firebase.beginStream(fbdo, path);
+  //fbdo.streamTimeout();
+
   #ifdef TEST
   struct token_info_t info = Firebase.authTokenInfo();
   if (info.status == token_status_error)
