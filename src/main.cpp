@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#define TEST
+//#define TEST
 
 #include <CoopTask.h>
 #include <CoopSemaphore.h>
@@ -21,6 +21,7 @@
 #define OLED_DISP  2
 #define FIREB_UP   3
 #define ERROR_COM  5
+#define SERIAL_TIME 3000
 
 #define USE_BUILTIN_TASK_SCHEDULER
 
@@ -33,6 +34,7 @@ int taskToken     = FIREB_VAL;
 bool led          = false;
 bool Serial_Event = false;
 unsigned long time1,time2,time3,time_rev;
+String inputString;
 
 void Blinky_Blinky()
 {
@@ -236,6 +238,9 @@ void loop5()
 
 void SerialEvent()
 {
+    char inChar;
+    bool Sevent = false;
+
     if (Serial_Event)
     {
         #ifdef TEST
@@ -244,18 +249,41 @@ void SerialEvent()
                 time1 = millis();
                 Serial.print(F("."));
             }
+        #endif
             if (Serial.available())
             {
-                Serial.print((char)Serial.read());
+                inChar = (char)Serial.read();
+                #ifdef TEST
+                    Serial.print(inChar);
+                #endif
+                inputString += inChar;
+
+                if (((inChar == '\n') || (inputString.length() >= 100))and(count_index<MAXMSGS))
+                {
+                    #ifdef TEST
+                        Serial.print("The message detected is: ");
+                        Serial.println(inputString.c_str());
+                    #endif
+                    System.Serial_Msg_Upload(inputString);
+                    inputString = "";
+                }
             }
-        #endif
         //En caso de no ser TEST o incluso si es un TEST Contrario almacenar la info para su procesamiento!
-        if (millis() - time2 >= 3000)
+        if (millis() - time2 >= SERIAL_TIME)
         {
             taskSema.post();
             Serial_Event = false;
+            #ifdef TEST
             Serial.println(F("."));
+            #endif
+            Sevent = true;
         }
+    }
+    //else{}
+
+    if(Sevent)
+    {
+        System.Print_Serial_Msg();
     }
 }
 
@@ -291,7 +319,9 @@ void setup()
     bool fire_connect = false;
     bool Serial_set   = false;
     char int_c;
-    Serial.begin(115200);
+    unsigned long timing = 0;
+    Serial.begin(115200);   
+    inputString.reserve(MAXMSGLENGTH);
     //Serial.swap(); NUevos pines y nos libramos del SerialDEBUG
     
     /*
@@ -346,12 +376,24 @@ void setup()
         Serial.println(F("Serial Connection"));
         delay(500);
     #endif
+    System.Serial_Config();
+
     while(!Serial_set)
     {
         System.FACP_Setup();
-        delay(500);
+        //delay(10);
+        timing=millis();
+        while((!Serial.available())&&(millis()-timing<=3000))
+        {
+            #ifdef TEST
+                Serial.print(F("."));
+            #endif
+        }
         if(Serial.available())
         {
+            #ifdef TEST
+                Serial.print(F("Conexion establecida"));
+            #endif
             Serial_set = true;
             while(Serial.available())
             {
@@ -375,7 +417,7 @@ void setup()
         CoopTaskBase::useBuiltinScheduler();
     #endif
     
-    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0x7D0);
+    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0x9c4); //7D0
     if (!*task1) {Serial.printf("CoopTask %s out of stack\n", task1->name().c_str());}
     
     task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x2EE);

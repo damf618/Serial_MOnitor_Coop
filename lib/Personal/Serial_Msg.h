@@ -18,6 +18,7 @@ bool wtf = true;
 
 void Matriz_Setup()
 {
+  count_index = 0;
   for (int i = 0; i < MAXMSGS; i++)
   {
     Matriz[i].reserve(MAXMSGLENGTH);
@@ -32,6 +33,19 @@ void Init_Matriz()
     Matriz[i] = "";
   }
   count_index = 0;
+}
+
+void Msg_Upload(String inputString)
+{
+  Matriz[count_index] = inputString;
+  count_index++;
+  stringComplete = true;
+  #ifdef TEST
+  Serial.print(F("Message number: "));
+  Serial.println((count_index-1));
+  Serial.print(F("The message received is: "));
+  Serial.println(inputString.c_str());
+  #endif
 }
 
 void serialEvent()
@@ -59,12 +73,14 @@ void serialEvent()
       // do something about it:
       if (((inChar == '\n') || (inputString.length() >= 100))and(count_index<MAXMSGS))
       {
+        /*
         Matriz[count_index] = inputString;
         count_index++;
         stringComplete = true;
         #ifdef TEST
         Serial.print(inputString);
         #endif
+        */
         inputString = "";
       }
     }
@@ -93,11 +109,13 @@ void OLED_Print()
     #ifdef TEST
     Serial.print("Print: ");
     Serial.println(i);
+    Serial.print("Message Extracted: ");
+    Serial.println(Matriz[i]);
     #endif
     OLED_Init();
     display.println(Matriz[i]);
     display.display();
-    delay(1000);
+    delay(2000);
   }
   #ifdef TEST
   Serial.println("Final");
@@ -108,16 +126,22 @@ void OLED_Print()
   #endif
 }
 
+void Serial_Configuration()
+{
+    Matriz_Setup();
+}
+
 void Simplex_Init()
 {
-  unsigned long timing = 0;
+  //unsigned long timing = 0;
   Serial.println("exit");
   delay(500);
   Serial.println("LOGIN");
   delay(500);
   Serial.println("444");
   //Needed Delay to receive the answer from the central
-  timing = millis();
+  //timing = millis();
+  /*
   while (millis() - timing <= 500)
   {
     if (Serial.available())
@@ -126,7 +150,7 @@ void Simplex_Init()
       Serial.read();
     }
   }
-  Matriz_Setup();
+  */
 }
 
 //TODO Make a previous validation to check if there are any fails
@@ -156,23 +180,21 @@ void Print_Msg_Data()
   
   if (get_flag())
   {
+    /*
     OLED_Init();
     display.print("Mensajes: ");
     display.println(count_index+1);
     display.display();
     delay(1000);
     OLED_Print();
-#ifdef TEST
-    Serial.println("Print Finished");
-#endif
-    stringComplete = false;
-  }
-  
- #ifdef TEST
-    Serial.println("Print Finished");
-#endif
+    */
+    OLED_Print();
+    #ifdef TEST
+      Serial.println("Print Finished");
+    #endif
     stringComplete = false;
     Init_Matriz();
+  }
 }
 
 #endif

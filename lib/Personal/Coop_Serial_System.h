@@ -21,6 +21,21 @@ public:
     Simplex_Init();
   }
 
+  void Serial_Config()
+  {
+    Serial_Configuration(); 
+  }
+
+  void Serial_Msg_Upload(String Msg)
+  {
+    Msg_Upload(Msg);
+  }
+
+  void Print_Serial_Msg()
+  {
+    Print_Msg_Data();
+  }
+
   bool Start()
   {
     bool rtn = true;
