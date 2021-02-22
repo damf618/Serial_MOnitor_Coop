@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-//#define TEST
+#define TEST
 
 #include <CoopTask.h>
 #include <CoopSemaphore.h>
@@ -274,12 +274,15 @@ void SerialEvent()
             taskSema.post();
             Serial_Event = false;
             #ifdef TEST
-            Serial.println(F("."));
+            Serial.println(F(".\n No more Serial listening"));
             #endif
             Sevent = true;
         }
     }
-    //else{}
+    else
+    {
+        Serial.read();
+    }
 
     if(Sevent)
     {
@@ -318,7 +321,6 @@ void setup()
     bool Wifi_Conn    = false;
     bool fire_connect = false;
     bool Serial_set   = false;
-    char int_c;
     unsigned long timing = 0;
     Serial.begin(115200);   
     inputString.reserve(MAXMSGLENGTH);
@@ -397,7 +399,7 @@ void setup()
             Serial_set = true;
             while(Serial.available())
             {
-                int_c=(char)Serial.read();  
+                Serial.read();  
             }
         }
         else

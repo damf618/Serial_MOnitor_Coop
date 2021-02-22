@@ -1,10 +1,8 @@
 #ifndef Firebase_Comm_h
 #define Firebase_Comm_h
 
-
 #include <FirebaseESP8266.h>
 #include <ESP8266WiFi.h>
-//#include <WiFiManager.h> 
 #include <SPIFFS_Serial_Monitor.h>
 #include <OLED.h>
 
@@ -21,6 +19,7 @@ static FirebaseData fbdo;
 String path = "";
 int count = 0;
 String path_add = ""; 
+
 
 void prepareDatabaseRules( const char *var, const char *readVal, const char *writeVal)
 {
@@ -314,9 +313,10 @@ bool Firebase_Set_Up()
   #endif
   String user_firebase = readFile(SPIFFS, "/USERNAME.txt");
   String psw_firebase = readFile(SPIFFS, "/USER_PSW.txt");
+  
+  #ifdef TEST
   char* Auth_Email=(char*)user_firebase.c_str();
   char* Auth_Password = (char*)psw_firebase.c_str();
-  #ifdef TEST
   Serial.println("Firebase auth");
   Serial.println(Auth_Email);
   Serial.println(Auth_Password);
@@ -324,8 +324,6 @@ bool Firebase_Set_Up()
 
   auth.user.email = "DAMF618@GMAIL.COM";
   auth.user.password = "12345678";
-  //auth.user.email = Auth_Email;
-  //auth.user.password = Auth_Password;
 
   #ifdef TEST
   Serial.println("Firebase wifi");
@@ -618,13 +616,15 @@ bool Firebase_Fix()
   {
     Serial.printf("Token info: type = %s, status = %s\n\n", getTokenType(info).c_str(), getTokenStatus(info).c_str());
   }
+  #endif
   if(Firebase_Enable())
   {
     rtn = true;
+    #ifdef TEST
     Serial.println("Conexion Firebase Arreglado");
+    #endif
   }
   return rtn;
-  #endif
 }
 
 #endif

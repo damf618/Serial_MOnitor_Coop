@@ -4,6 +4,10 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <OLED.h>
+#include <Simplex_Protocol.h>
+
+//Firebase JSON
+#include <FirebaseESP8266.h>
 
 #define MAXMSGS 60
 #define MAXMSGLENGTH 100
@@ -14,6 +18,27 @@ bool stringComplete = false; // whether the string is complete
 String Matriz[MAXMSGS];
 int count_index = 0;
 bool wtf = true;
+
+FirebaseJson json1;
+
+void Json_Setup_Fail(String point_name, String name, String type, String status)
+{
+  json1.add("id", point_name);
+  json1.add("name", name);
+  json1.add("type", type);
+  //json1.add("status", status);
+  json1.add("status", "PROBLEMA");
+}
+
+void Json_Setup_Alarm(String point_name, String name, String type, String status)
+{
+  json1.add("id", point_name);
+  json1.add("name", name);
+  json1.add("type", type);
+  //json1.add("status", status);
+  json1.add("status", "ALARMA");
+}
+
 
 
 void Matriz_Setup()
@@ -99,6 +124,8 @@ void OLED_Init()
 
 void OLED_Print()
 {
+  String jsonStr;
+  message_parser_t rtn; 
   #ifdef TEST
   Serial.println("Arranca");
   Serial.print("Counter: ");
@@ -107,10 +134,31 @@ void OLED_Print()
   for (int i = 0; i < count_index; i++)
   {
     #ifdef TEST
+    
     Serial.print("Print: ");
     Serial.println(i);
     Serial.print("Message Extracted: ");
     Serial.println(Matriz[i]);
+    
+    Serial.println(" ****** Segmentation TEST ****** ");
+    rtn = Separator_Search((char *)Matriz[i].c_str());
+    Serial.printf("Point Name obtained: %s\n", rtn.point_name);
+		Serial.printf("Name obtained: %s\n", rtn.name);
+		Serial.printf("Type obtained: %s\n", rtn.type);
+		Serial.printf("Status obtained: %s\n", rtn.status);
+    Serial.println(" ****** ***************** ****** ");
+
+    Serial.println(" ------------------------------- ");
+
+    Json_Setup_Fail(rtn.point_name,rtn.name,rtn.type,rtn.status);
+    json1.toString(jsonStr, true);
+    Serial.println(jsonStr);
+
+    Json_Setup_Alarm(rtn.point_name,rtn.name,rtn.type,rtn.status);
+    json1.toString(jsonStr, true);
+    Serial.println(jsonStr);
+
+    Serial.println(" ------------------------------- ");
     #endif
     OLED_Init();
     display.println(Matriz[i]);
@@ -134,11 +182,11 @@ void Serial_Configuration()
 void Simplex_Init()
 {
   //unsigned long timing = 0;
-  Serial.println("exit");
-  delay(500);
-  Serial.println("LOGIN");
-  delay(500);
-  Serial.println("444");
+  Serial.print("exit\n");
+  delay(50);
+  Serial.print("LOGIN\n");
+  delay(50);
+  Serial.print("444\n");
   //Needed Delay to receive the answer from the central
   //timing = millis();
   /*
@@ -157,7 +205,7 @@ void Simplex_Init()
 bool Simplex_Fail_List()
 {
   bool rtn = true;
-  Serial.println("L T");
+  Serial.print("L T\n");
   //serialEvent();
   return rtn;
 }
@@ -165,7 +213,7 @@ bool Simplex_Fail_List()
 bool Simplex_Alarm_List()
 {
   bool rtn = true;
-  Serial.println("L F");
+  Serial.print("L F\n");
   //serialEvent();
   return rtn;
 }
