@@ -7,21 +7,21 @@
 #include <CoopMutex.h>
 #include <Coop_Serial_System.h>
 
-/*
+
 #if defined(ARDUINO_AVR_MICRO)
 #define STACKSIZE_8BIT 92
 #else
 #define STACKSIZE_8BIT 40
 #endif
-*/
+
 
 #define LED_PERIOD 500
 #define FIREB_VAL  1
 #define SERIAL_REQ 4
 #define OLED_DISP  2
 #define FIREB_UP   3
-#define ERROR_COM  5
-#define SERIAL_TIME 3000
+//#define ERROR_COM  5
+#define SERIAL_TIME 1000
 
 #define USE_BUILTIN_TASK_SCHEDULER
 
@@ -67,22 +67,31 @@ void loop1()
         }
         
         if (!System.Firebase_enable())
+        //if (1!=1)
         {
-            if (WiFi.status() != WL_CONNECTED)
+            if (WiFi.status() == WL_CONNECTED)
             {
                #ifdef TEST
-                Serial.println(F("Firebase Validation -FAILED- Firebase Connection DOWN!"));    
+                Serial.println(F("Firebase Connection -FAILED-"));    
                #endif
                //TRY TO CONNECT TO FIREBASE ONCE MORE 
-               taskToken = ERROR_COM;
+               //taskToken = ERROR_COM;
+               /*
+               if(!System.WiFi_Val())
+               {
+                    ESP.reset();
+               }
+               */
+              ESP.reset();
             }
             else
-            {
+            {                
                #ifdef TEST
-                Serial.println(F("Firebase Validation -FAILED- Wi-Fi Connection DOWN!"));    
+                Serial.println(F("Wi-Fi Connection DOWN!"));    
                #endif
                //RESET SYSTEM
-               taskToken = ERROR_COM;
+               //taskToken = ERROR_COM;
+               ESP.reset();
             }
         }
         else
@@ -90,7 +99,7 @@ void loop1()
             taskToken = SERIAL_REQ;
         }
         taskSema.post();
-        delay(10000);
+        //delay(5000);
     }
 }
 
@@ -213,10 +222,10 @@ void loop4()
         yield();
         }
 }
-
+/*
 // Task no.3: blink LED with 0.05 second delay.
 void loop5()
-{
+{   
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -226,15 +235,26 @@ void loop5()
             yield();
             continue;
         }
-
         #ifdef TEST
             Serial.println(F("Connection to Firebase is impossible"));
-            Serial.println(F("Sepuku"));
         #endif    
-        for(;;){ }
+        
+        if (System.Wi_Fi_Connection())
+        {
+            taskToken =FIREB_VAL;
+            taskSema.post();
+            yield();
+        }
+        else
+        {
+            ESP.reset();
+        }
+        Serial.println(F("Sepuku"));
+        ESP.reset();
+       
     }
 }
-
+*/
 
 void SerialEvent()
 {
@@ -283,18 +303,19 @@ void SerialEvent()
     {
         Serial.read();
     }
-
+    
     if(Sevent)
     {
         System.Print_Serial_Msg();
     }
+    
 }
 
 CoopTask<void>* task1;
 CoopTask<void>* task2;
 CoopTask<void>* task3;
 CoopTask<void>* task4;
-CoopTask<void>* task5;
+//CoopTask<void>* task5;
 
 
 void printStackReport(CoopTaskBase* task)
@@ -312,7 +333,9 @@ void printReport()
     printStackReport(task2);
     printStackReport(task3);
     printStackReport(task4);
-    printStackReport(task5);
+    //printStackReport(task5);
+    Serial.print(F("ESP mem: "));
+    Serial.println(ESP.getFreeHeap());
     Serial.println(F("---------------------------------"));
 };
 
@@ -324,6 +347,7 @@ void setup()
     unsigned long timing = 0;
     Serial.begin(115200);   
     inputString.reserve(MAXMSGLENGTH);
+    WiFi.setSleepMode(WIFI_NONE_SLEEP);
     //Serial.swap(); NUevos pines y nos libramos del SerialDEBUG
     
     /*
@@ -419,20 +443,20 @@ void setup()
         CoopTaskBase::useBuiltinScheduler();
     #endif
     
-    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0x9c4); //7D0
+    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0xE10); //7D0, 9c4,960 
     if (!*task1) {Serial.printf("CoopTask %s out of stack\n", task1->name().c_str());}
     
-    task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x2EE);
+    task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x258);//2EE
     if (!*task2) {Serial.printf("CoopTask %s out of stack\n", task2->name().c_str());}
-    
-    task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0xDAC);
+    //DAC
+    task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0x7D0);//9C4, e10
     if (!*task3) {Serial.printf("CoopTask %s out of stack\n", task3->name().c_str());}
     
-    task4 = new CoopTask<void>(F("4- Serial Request"),      loop4,0x4B0);
+    task4 = new CoopTask<void>(F("4- Serial Request"),      loop4,0x7D0);//4B0 , 320
     if (!*task4) {Serial.printf("CoopTask %s out of stack\n", task4->name().c_str());}
-    
-    task5 = new CoopTask<void>(F("5- Comm Error Handler"),  loop5,0x3E8);
-    if (!*task5) {Serial.printf("CoopTask %s out of stack\n", task5->name().c_str());}
+    //3e8
+    //task5 = new CoopTask<void>(F("5- Comm Error Handler"),  loop5,0x320);//
+    //if (!*task5) {Serial.printf("CoopTask %s out of stack\n", task5->name().c_str());}
     
     // Add "loop1", "loop2" and "loop3" to CoopTask scheduling.
     // "loop" is always started by default, and is not under the control of CoopTask.
@@ -445,7 +469,7 @@ void setup()
     
     if (!task4->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task4->name().c_str()); }
     
-    if (!task5->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task5->name().c_str()); }
+    //if (!task5->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task5->name().c_str()); }
 
     time1    = millis();
     time3    = time1;
@@ -465,4 +489,5 @@ void loop()
             printReport();
         }
     #endif
+    
 }

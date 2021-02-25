@@ -10,22 +10,30 @@
 #define FIREBASE_HOST "sistema-de-monitoreo-72a42-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH "N6jkN9OnR7bC8wHNw3VsPl8afBikm0ZzIYihTPIM"
 #define USER_FLAG "User Created"
+#define ENABLE_PATH "/Enable"
+#define INT_UPLOAD_PATH "/int"
 
 static FirebaseAuth auth;
 static FirebaseConfig config;
 static FirebaseData fbdo;
 
+char enable_path[250]="";
+char path_dataup[250]="";
+
 
 String path = "";
-int count = 0;
-String path_add = ""; 
+int count = 0; 
+int count1=0;
 
 
 void prepareDatabaseRules( const char *var, const char *readVal, const char *writeVal)
 {
+  char path_push [100]="";
   //We will sign in using legacy token (database secret) for full RTDB access
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-  path = readFile(SPIFFS, "/FACILITY.txt");
+  //path = readFile(SPIFFS, "/FACILITY.txt");
+  strcpy(path_push,readFile(SPIFFS, "/FACILITY.txt").c_str());
+
   //String Firebase_Div = "/";
   //path = auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
   #ifdef TEST
@@ -298,71 +306,100 @@ String getTokenError(struct token_info_t info)
 
 bool Firebase_Set_Up()
 {
-  
   bool signupOK = false;
-  String user_created;
+  char username[100]="";
+  char user_psw[100]="";
+  char user_created_c[100]="";
+  char aux[100]="";
+  char var[10] = "$user";
+  char val[25] = "(auth.uid === $user)";
+  //String user_created;
+
+  strcpy(username,readFile(SPIFFS, "/USERNAME.txt").c_str());
+  strcpy(user_psw,readFile(SPIFFS, "/USER_PSW.txt").c_str());
+  strcpy(user_created_c,readFile(SPIFFS, "/USER.txt").c_str());
+  strcpy(aux,USER_FLAG);
+
   #ifdef TEST
-  Serial.println("Firebase config");
+    Serial.print(F("Username: "));
+    Serial.println(username);
+    Serial.print(F("Password: "));
+    Serial.println(user_psw);
+    Serial.print(F("User created?: "));
+    Serial.println(user_created_c);
+    Serial.print(F("Aux: "));
+    Serial.println(aux);
+  #endif
+
+  //user created previosuly?
+  //user_created = readFile(SPIFFS, "/USER.txt");
+  //String aux = USER_FLAG;
+
+  #ifdef TEST
+  Serial.println(F("Firebase config"));
   #endif
 
   config.host = FIREBASE_HOST;
   config.api_key = API_KEY;
 
   #ifdef TEST
-  Serial.println("Firebase String");
+  Serial.println(F("Firebase String"));
   #endif
-  String user_firebase = readFile(SPIFFS, "/USERNAME.txt");
-  String psw_firebase = readFile(SPIFFS, "/USER_PSW.txt");
+  //String user_firebase = readFile(SPIFFS, "/USERNAME.txt");
+  //String psw_firebase = readFile(SPIFFS, "/USER_PSW.txt");
   
   #ifdef TEST
-  char* Auth_Email=(char*)user_firebase.c_str();
-  char* Auth_Password = (char*)psw_firebase.c_str();
-  Serial.println("Firebase auth");
-  Serial.println(Auth_Email);
-  Serial.println(Auth_Password);
+  //char* Auth_Email=(char*)readFile(SPIFFS, "/USERNAME.txt").c_str();
+  //char* Auth_Password = (char*)readFile(SPIFFS, "/USER_PSW.txt").c_str();
+  Serial.println(F("Firebase auth"));
+  
+  if (0!=memcmp ( aux, user_created_c, sizeof(aux)))
+  {
+    Serial.println(F("Not the same message!"));
+  }
   #endif
 
-  auth.user.email = "DAMF618@GMAIL.COM";
-  auth.user.password = "12345678";
+  auth.user.email = username;
+  auth.user.password = user_psw;
 
   #ifdef TEST
-  Serial.println("Firebase wifi");
+  Serial.println(F("Firebase wifi"));
   #endif
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  //fbdo.setBSSLBufferSize(1024, 1024);
+  //fbdo.setBSSLBufferSize(256, 256);
   fbdo.setBSSLBufferSize(128, 128);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  //fbdo.setResponseSize(1024);
+  //fbdo.setResponseSize(256);
   fbdo.setResponseSize(128);
 
   //Set database read timeout to 1 minute (max 15 minutes)
-  //Firebase.setReadTimeout(fbdo, 1000 * 60);
-  Firebase.setReadTimeout(fbdo, 1000 * 120);
+  Firebase.setReadTimeout(fbdo, 1000 * 5);
+  //Firebase.setReadTimeout(fbdo, 1000 * 30);
   //tiny, small, medium, large and unlimited.
   //Size and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
-  Firebase.setwriteSizeLimit(fbdo, "large");
+  Firebase.setwriteSizeLimit(fbdo, "small");
   
   OLED_write_Firebase_Start();
 
   #ifdef TEST
-  Serial.println("Firebase signup");
-  Serial.println("THINK1");
+    Serial.println(F("Firebase signup"));
+    Serial.println(F("THINK1"));
   #endif
   OLED_write_Firebase_Think();
 
   //user created previosuly?
-  user_created = readFile(SPIFFS, "/USER.txt");
-  String aux = USER_FLAG;
+  //user_created = readFile(SPIFFS, "/USER.txt");
+  //String aux = USER_FLAG;
   
-  if ( aux != user_created)
+  if (0!=memcmp ( aux, user_created_c, sizeof(aux)))
   {
-    if (Firebase.signUp(&config, &auth, user_firebase.c_str(), psw_firebase.c_str()))
+    if (Firebase.signUp(&config, &auth, username, user_psw))
     {
       #ifdef TEST
-      Serial.println("Success");
+      Serial.println(F("Success"));
       #endif
       writeFile(SPIFFS, "/USER.txt", USER_FLAG);
     }
@@ -373,46 +410,43 @@ bool Firebase_Set_Up()
     }
     #endif
 
-  String var = "$user";
-  String val = "(auth.uid === $user)";
+  //String var = "$user";
+  //String val = "(auth.uid === $user)";
   #ifdef TEST
-  Serial.println("THINK2");
+  Serial.println(F("THINK2"));
   #endif
   OLED_write_Firebase_Think();
-  prepareDatabaseRules(var.c_str(), val.c_str(), val.c_str());
+  prepareDatabaseRules(var, val, val);
   }
   else
   {
     OLED_write_Firebase_Think();
     #ifdef TEST
-    Serial.println("User already created");
+    Serial.println(F("User already created"));
     #endif
   }
   
   #ifdef TEST
-  Serial.println("THINK3");
+  Serial.println(F("THINK3"));
   #endif
   OLED_write_Firebase_Think();
 
   #ifdef TEST
-  Serial.println("Path");
-  Serial.println(path);
-  Serial.println("THINK4");
+  Serial.println(F("THINK4"));
   #endif
   OLED_write_Firebase_Think();
   #ifdef TEST
-  Serial.println("THINK5");
+  Serial.println(F("THINK5"));
   #endif
   
   Firebase.begin(&config, &auth);
   
-  
-
   #ifdef TEST
-  Serial.println("THINK7");
+  Serial.println(F("THINK7"));
   #endif
-  String Firebase_Div = "/";
-  path = auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
+  path = auth.token.uid.c_str();
+  path+="/";
+  path+=readFile(SPIFFS, "/FACILITY.txt");
 
   /*
   #ifdef TEST
@@ -430,17 +464,38 @@ bool Firebase_Set_Up()
   */
 
   #ifdef TEST
-  Serial.print("Facility_Name: ");
+  Serial.print(F("Facility_Name: "));
   Serial.println(path);
   #endif  
   
 
   signupOK = true;
   #ifdef TEST
-  Serial.println("THINK6");
+  Serial.println(F("THINK6"));
   #endif
   OLED_write_Firebase_Done();
+
+  strcpy(enable_path,path.c_str());
+  //falta concatenar 
+  //String enable_path = path + "/Enable";
+  strcat(enable_path, ENABLE_PATH);
+
+  #ifdef TEST
+    Serial.print(F("Enable_Path: "));
+    Serial.println(enable_path);
+  #endif
+
+  strcpy(path_dataup,path.c_str());
+  //falta concatenar
+  //String path_dataup = path + "/int";INT_UPLOAD_PATH
+  strcat(path_dataup, INT_UPLOAD_PATH);
+
+  #ifdef TEST
+    Serial.print(F("Upload_Path: "));
+    Serial.println(path_dataup);
+  #endif
   return signupOK;
+
 }
 
 bool Firebase_First_Push()
@@ -496,10 +551,39 @@ bool Firebase_First_Push()
   return rtn;
 }
 
+bool Firebase_Check_Conn()
+{
+  bool rtn = false;
+  rtn = fbdo.httpConnected();
+  #ifdef TEST
+    Serial.println(F("Validacion de Conexion HTTP"));
+    if(rtn)
+    {
+      Serial.println(F("Conexion Pausada"));  
+    }
+  #endif
+  rtn = fbdo.pauseFirebase(1);
+  if(rtn)
+  {
+    delay(1000);
+    rtn = fbdo.pauseFirebase(0);
+    if(rtn)
+    {
+      Serial.println(F("Conexion Correcta"));  
+      count =0;
+      Firebase.begin(&config, &auth);
+    }
+  }
+  else
+  {
+    Serial.println(F("Conexion NO pudo ser Pausada"));
+  }
+  return rtn;
+}
+
 int Firebase_Enable()
 {
   int rtn = false;
-  String enable_path = path + "/Enable";
   if (Firebase.getInt(fbdo, enable_path))
   {
     if (fbdo.dataType() == "int")
@@ -522,10 +606,12 @@ int Firebase_Enable()
   #ifdef TEST
   else
   {
-    Serial.println("FAILED");
+    Serial.println(F("FAILED"));
+    /*
     Serial.println("REASON: " + fbdo.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
+    */
   }
   #endif
   return rtn;
@@ -534,15 +620,23 @@ int Firebase_Enable()
 bool dataupload()
 {
   bool rtn = false;
-  struct token_info_t info = Firebase.authTokenInfo();
   #ifdef TEST
-    Serial.println("Firebase Data Upload");
+    Serial.println(F("Firebase Data Upload"));
   #endif
-  if (Firebase.setInt(fbdo, path + "/int", count++))
+  count++;
+  count1++;
+  if(count<=45)
+  {
+  //  Firebase.begin(&config, &auth);
+  if (Firebase.setInt(fbdo, path_dataup, count1))
   {
     rtn = true;
+    
     #ifdef TEST
-    Serial.println("PASSED");
+    Serial.println(F("PASSED"));
+    Serial.print(F("VALUE: "));
+    Serial.println(count);
+    /*
     Serial.println("PATH: " + fbdo.dataPath());
     Serial.println("TYPE: " + fbdo.dataType());
     Serial.println("ETag: " + fbdo.ETag());
@@ -550,18 +644,25 @@ bool dataupload()
     printResult(fbdo);
     Serial.println("------------------------------------");
     Serial.println();
-    #endif
+    */
+    #endif 
   }
   #ifdef TEST
   else
   {
-    Serial.println("FAILED");
+    Serial.println(F("FAILED"));
     Serial.println("REASON: " + fbdo.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
+    //Firebase.begin(&config, &auth);
+  }
+  }
+  else
+  {
+    Firebase_Check_Conn();
   }
   #endif
-
+  
 /*
 
 if (!Firebase.readStream(fbdo))
@@ -601,10 +702,12 @@ if (!Firebase.readStream(fbdo))
 bool Firebase_Fix()
 {
   bool rtn = false;
+  //Firebase.end(fbdo);
+  //Firebase.refreshToken();
   Firebase.begin(&config, &auth);
   //Firebase.beginStream(fbdo, path);
   //fbdo.streamTimeout();
-
+  /*
   #ifdef TEST
   struct token_info_t info = Firebase.authTokenInfo();
   if (info.status == token_status_error)
@@ -617,6 +720,7 @@ bool Firebase_Fix()
     Serial.printf("Token info: type = %s, status = %s\n\n", getTokenType(info).c_str(), getTokenStatus(info).c_str());
   }
   #endif
+  */
   if(Firebase_Enable())
   {
     rtn = true;

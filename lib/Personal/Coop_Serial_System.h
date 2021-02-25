@@ -128,6 +128,13 @@ public:
     return rtn;
   }
 
+  bool WiFi_Val()
+  {
+    bool rtn= false;
+    rtn= Firebase_Check_Conn();
+    return rtn;
+  }
+
   bool Firebase_upload()
   {
     bool rtn = false;
