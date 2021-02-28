@@ -443,16 +443,16 @@ void setup()
         CoopTaskBase::useBuiltinScheduler();
     #endif
     
-    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0xE10); //7D0, 9c4,960 
+    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0xE10); //7D0, 9c4,960, E10 
     if (!*task1) {Serial.printf("CoopTask %s out of stack\n", task1->name().c_str());}
     
     task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x258);//2EE
     if (!*task2) {Serial.printf("CoopTask %s out of stack\n", task2->name().c_str());}
     //DAC
-    task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0x7D0);//9C4, e10
+    task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0x9C4);//9C4, e10, 7D0
     if (!*task3) {Serial.printf("CoopTask %s out of stack\n", task3->name().c_str());}
     
-    task4 = new CoopTask<void>(F("4- Serial Request"),      loop4,0x7D0);//4B0 , 320
+    task4 = new CoopTask<void>(F("4- Serial Request"),      loop4,0x3E8);//4B0 , 320
     if (!*task4) {Serial.printf("CoopTask %s out of stack\n", task4->name().c_str());}
     //3e8
     //task5 = new CoopTask<void>(F("5- Comm Error Handler"),  loop5,0x320);//
