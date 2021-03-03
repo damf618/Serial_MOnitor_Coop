@@ -5,16 +5,11 @@
 #include <WiFi_Config.h>
 #include <Firebase_Comm.h>
 #include <Serial_Msg.h>
+#include <Simplex_Protocol.h>
 
 class Coop_System
 {
 public:
-  /*
-  Coop_System()
-  {
-    Msg_Event_counter  = 0;
-    Msg_Event_attended = 0;
-  }*/
 
   void FACP_Setup()
   {
@@ -31,10 +26,18 @@ public:
     Msg_Upload(Msg);
   }
 
-  void Print_Serial_Msg()
+  void Trouble_Protocol()
   {
-    Print_Msg_Data();
+    bool mode= true;
+    //Trouble_Msg_Data();
+    Print_Msg_Data(mode);
+  }
 
+  void Fire_Protocol()
+  {
+    //Fire_Msg_Data();
+    bool mode= false;
+    Print_Msg_Data(mode);
   }
 
   bool Start()
@@ -58,25 +61,16 @@ public:
     return rtn;
   }
 
-  void OLED_Events()
+  //TODO Make a previous validation to check if there are any fails
+  void get_Fails()
   {
-    Print_Msg_Data();
+    Simplex_Fail_List();
   }
 
   //TODO Make a previous validation to check if there are any fails
-  bool get_Fails()
+  void get_Alarms()
   {
-    bool rtn =false;
-    rtn = Simplex_Fail_List();
-    return rtn;
-  }
-
-  //TODO Make a previous validation to check if there are any fails
-  bool get_Alarms()
-  {
-    bool rtn =false;
-    rtn = Simplex_Alarm_List();
-    return rtn;
+    Simplex_Alarm_List();
   }
 
   bool Wi_Fi_Status()
@@ -118,16 +112,6 @@ public:
     return rtn;
   }
 
-  bool Firebase_Set_System_up()
-  {
-    bool rtn = false;
-    #ifdef TEST
-    Serial.println("Firebase FIX");
-    #endif
-    rtn = Firebase_Fix();
-    return rtn;
-  }
-
   bool WiFi_Val()
   {
     bool rtn= false;
@@ -138,14 +122,64 @@ public:
   bool Firebase_upload()
   {
     bool rtn = false;
+    char msg_line[100];
+    char aux[100];
+    //char name[10];
+    //char number[2];
+    int loops= get_count_index();
+    FirebaseJsonArray  data;
+    FirebaseJson       data_j;
+
+    //number[1]=32;
+    
+    #ifdef TEST
+      String jsonStr;
+      jsonStr.reserve(500);
+    #endif
+
+    if(loops>0)
+    {
+      for(int i=0;i<loops;i++)
+      {
+        strcpy(msg_line,get_Serial_Msg());
+        strcpy(aux,USER_FLAG);
+        if(0!=memcmp (msg_line, aux, sizeof(msg_line)))
+        {
+          /*
+          number[0]= (i+1+'0');
+          strcpy(name,UPLOAD_DEVICE);
+          strcat(name,number);
+          */
+          //void FirebaseJsonArray::set(const String &path, FirebaseJson &json)
+          JSON_Conversion2(msg_line,0,&data_j);
+          //data.set(name,data_j);
+          data.add(data_j);
+          //JSON_Conversion(msg_line,0);
+          data_j.clear();
+        }
+      }
+      clean_JSON_array();
+      #ifdef TEST
+        Serial.println(" ********************************** ");
+        data.toString(jsonStr, true);
+        Serial.println(jsonStr);
+        Serial.println(" ********************************** ");
+      #endif
+    }
     rtn = dataupload();
+    #ifdef TEST
+      Serial.println("TRack1");
+    #endif
+    data.clear();
+    #ifdef TEST
+    Serial.println("TRack2");
+    #endif
     return rtn;
   }
 
   bool Firebase_enable()
   {
-    int rtn = 2;
-    bool rtn_b = false;
+    int rtn;
     rtn = Firebase_Enable();
     oled_event_t msg_event;
 
@@ -153,17 +187,13 @@ public:
     {
       msg_event.oled_msg = WEB_CONFIG;
       Print_Upload(msg_event);
-      //OLED_write_Web_Config();
-      //Configurar o contactarse con servicio tecnico.
     }
     else
     {
       msg_event.oled_msg = F_ENABLED;
       Print_Upload(msg_event);
-      //OLED_write_Firebase_Enabled();
-      rtn_b = true;
     }
-    return rtn_b;
+    return rtn;
   }
 
   bool Print_OLED()

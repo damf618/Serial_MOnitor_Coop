@@ -20,8 +20,7 @@
 #define SERIAL_REQ 4
 #define OLED_DISP  2
 #define FIREB_UP   3
-//#define ERROR_COM  5
-#define SERIAL_TIME 1000
+#define SERIAL_TIME 5000
 
 #define USE_BUILTIN_TASK_SCHEDULER
 
@@ -30,9 +29,10 @@ CoopSemaphore OLEDSema(0, 1);
 CoopMutex OLEDMutex;
 Coop_System System;
 
-int taskToken     = FIREB_VAL;
-bool led          = false;
-bool Serial_Event = false;
+int taskToken       = FIREB_VAL;
+bool led            = false;
+bool Serial_F_Event = false;
+bool Serial_A_Event = false;
 unsigned long time1,time2,time3,time_rev;
 String inputString;
 
@@ -74,23 +74,13 @@ void loop1()
                #ifdef TEST
                 Serial.println(F("Firebase Connection -FAILED-"));    
                #endif
-               //TRY TO CONNECT TO FIREBASE ONCE MORE 
-               //taskToken = ERROR_COM;
-               /*
-               if(!System.WiFi_Val())
-               {
-                    ESP.reset();
-               }
-               */
-              ESP.reset();
+               ESP.reset();
             }
             else
             {                
                #ifdef TEST
                 Serial.println(F("Wi-Fi Connection DOWN!"));    
                #endif
-               //RESET SYSTEM
-               //taskToken = ERROR_COM;
                ESP.reset();
             }
         }
@@ -98,6 +88,7 @@ void loop1()
         {
             taskToken = SERIAL_REQ;
         }
+        OLEDSema.post();
         taskSema.post();
         //delay(5000);
     }
@@ -130,6 +121,9 @@ void loop3()
             yield();
             continue;
         }
+        #ifdef TEST
+            Serial.print(F("Task 3 In\n"));
+        #endif
 
         #ifdef TEST
             if (!System.Firebase_upload())
@@ -139,6 +133,11 @@ void loop3()
         #else
             System.Firebase_upload();
         #endif
+
+        #ifdef TEST
+            Serial.print(F("Task 3 Out\n"));
+        #endif
+
         taskSema.post();
         taskToken = FIREB_VAL;
         yield();
@@ -161,11 +160,11 @@ void loop4()
             Serial.print(F("- Fails -\n"));
         #endif
         System.get_Fails();
-        Serial_Event=true;
+        Serial_F_Event=1;
         time2 = millis();
         yield();
         
-        while(Serial_Event)
+        while(Serial_F_Event)
         {
             taskSema.wait();
             if (SERIAL_REQ != taskToken)
@@ -191,11 +190,11 @@ void loop4()
             Serial.print(F("- Alarms -\n"));
         #endif
         System.get_Alarms();
-        Serial_Event=true;
+        Serial_A_Event=1;
         time2 = millis();
         yield();
         
-        while(Serial_Event)
+        while(Serial_A_Event)
         {
             taskSema.wait();
             if (SERIAL_REQ != taskToken)
@@ -216,52 +215,17 @@ void loop4()
             System.OLED_Events();
         }
         */
-        
         taskSema.post();
         taskToken = FIREB_UP;
         yield();
-        }
-}
-/*
-// Task no.3: blink LED with 0.05 second delay.
-void loop5()
-{   
-    for (;;) // explicitly run forever without returning
-    {
-        taskSema.wait();
-        if (ERROR_COM != taskToken)
-        {
-            taskSema.post();
-            yield();
-            continue;
-        }
-        #ifdef TEST
-            Serial.println(F("Connection to Firebase is impossible"));
-        #endif    
-        
-        if (System.Wi_Fi_Connection())
-        {
-            taskToken =FIREB_VAL;
-            taskSema.post();
-            yield();
-        }
-        else
-        {
-            ESP.reset();
-        }
-        Serial.println(F("Sepuku"));
-        ESP.reset();
-       
     }
 }
-*/
 
 void SerialEvent()
 {
     char inChar;
-    bool Sevent = false;
 
-    if (Serial_Event)
+    if ((1==Serial_F_Event)||(1==Serial_A_Event))
     {
         #ifdef TEST
             if (millis() - time1 >= 1000)
@@ -292,31 +256,39 @@ void SerialEvent()
         if (millis() - time2 >= SERIAL_TIME)
         {
             taskSema.post();
-            Serial_Event = false;
+
+            if(Serial_F_Event)
+            {
+                System.Trouble_Protocol();
+                Serial_F_Event = false;
+                #ifdef TEST
+                    Serial.println(F("Out of Troubles"));
+                #endif
+            }
+            else if(Serial_A_Event)
+            {
+                System.Fire_Protocol();
+                Serial_A_Event = false;
+                #ifdef TEST
+                    Serial.println(F("Out of Fire"));
+                #endif
+            }
+
             #ifdef TEST
             Serial.println(F(".\n No more Serial listening"));
             #endif
-            Sevent = true;
         }
     }
     else
     {
         Serial.read();
     }
-    
-    if(Sevent)
-    {
-        System.Print_Serial_Msg();
-    }
-    
 }
 
 CoopTask<void>* task1;
 CoopTask<void>* task2;
 CoopTask<void>* task3;
 CoopTask<void>* task4;
-//CoopTask<void>* task5;
-
 
 void printStackReport(CoopTaskBase* task)
 {
@@ -333,7 +305,6 @@ void printReport()
     printStackReport(task2);
     printStackReport(task3);
     printStackReport(task4);
-    //printStackReport(task5);
     Serial.print(F("ESP mem: "));
     Serial.println(ESP.getFreeHeap());
     Serial.println(F("---------------------------------"));
@@ -345,6 +316,7 @@ void setup()
     bool fire_connect = false;
     bool Serial_set   = false;
     unsigned long timing = 0;
+
     Serial.begin(115200);   
     inputString.reserve(MAXMSGLENGTH);
     WiFi.setSleepMode(WIFI_NONE_SLEEP);
@@ -364,7 +336,7 @@ void setup()
     #endif
     if (!System.Start())
     {
-    /*LOOP1 INIT AND SETUP BLOCK*/
+    //LOOP1 INIT AND SETUP BLOCK
         while(!Wifi_Conn)
         {
             if (System.Wi_Fi_Status())
@@ -407,7 +379,6 @@ void setup()
     while(!Serial_set)
     {
         System.FACP_Setup();
-        //delay(10);
         timing=millis();
         while((!Serial.available())&&(millis()-timing<=3000))
         {
@@ -430,7 +401,6 @@ void setup()
         {
             #ifdef TEST
                 Serial.println(F("Connection to FACP is impossible"));
-                Serial.println(F("Seppuku"));
             #endif
             delay(5000);
         }
@@ -443,20 +413,17 @@ void setup()
         CoopTaskBase::useBuiltinScheduler();
     #endif
     
-    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0xE10); //7D0, 9c4,960, E10 
+    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0xE10); //E10 
     if (!*task1) {Serial.printf("CoopTask %s out of stack\n", task1->name().c_str());}
     
-    task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x258);//2EE
+    task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x3E8);//3E8
     if (!*task2) {Serial.printf("CoopTask %s out of stack\n", task2->name().c_str());}
     //DAC
-    task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0x9C4);//9C4, e10, 7D0
+    task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0xCE4);//9FC 
     if (!*task3) {Serial.printf("CoopTask %s out of stack\n", task3->name().c_str());}
     
-    task4 = new CoopTask<void>(F("4- Serial Request"),      loop4,0x3E8);//4B0 , 320
+    task4 = new CoopTask<void>(F("4- Serial Request"),      loop4,0x320);//320
     if (!*task4) {Serial.printf("CoopTask %s out of stack\n", task4->name().c_str());}
-    //3e8
-    //task5 = new CoopTask<void>(F("5- Comm Error Handler"),  loop5,0x320);//
-    //if (!*task5) {Serial.printf("CoopTask %s out of stack\n", task5->name().c_str());}
     
     // Add "loop1", "loop2" and "loop3" to CoopTask scheduling.
     // "loop" is always started by default, and is not under the control of CoopTask.
@@ -468,13 +435,10 @@ void setup()
     if (!task3->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task3->name().c_str()); }
     
     if (!task4->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task4->name().c_str()); }
-    
-    //if (!task5->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task5->name().c_str()); }
 
     time1    = millis();
     time3    = time1;
     time_rev = time1;
-    OLEDSema.post();
 }
 
 void loop()
