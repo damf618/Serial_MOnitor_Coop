@@ -7,6 +7,10 @@
 #include <Serial_Msg.h>
 #include <Simplex_Protocol.h>
 
+FirebaseJsonArray  data;
+FirebaseJson       data_j;
+String jsonStr;
+
 class Coop_System
 {
 public:
@@ -14,6 +18,7 @@ public:
   void FACP_Setup()
   {
     Simplex_Init();
+    
   }
 
   void Serial_Config()
@@ -42,7 +47,8 @@ public:
 
   bool Start()
   {
-    bool rtn = true;
+    bool rtn = true;    
+    jsonStr.reserve(500);
     OLED_setup();
 
     SPIFFS_Start();
@@ -124,57 +130,74 @@ public:
     bool rtn = false;
     char msg_line[100];
     char aux[100];
-    //char name[10];
-    //char number[2];
     int loops= get_count_index();
-    FirebaseJsonArray  data;
-    FirebaseJson       data_j;
-
-    //number[1]=32;
-    
-    #ifdef TEST
-      String jsonStr;
-      jsonStr.reserve(500);
-    #endif
+    int cycles = 0;
 
     if(loops>0)
     {
       for(int i=0;i<loops;i++)
       {
+        cycles++;
         strcpy(msg_line,get_Serial_Msg());
         strcpy(aux,USER_FLAG);
         if(0!=memcmp (msg_line, aux, sizeof(msg_line)))
         {
-          /*
-          number[0]= (i+1+'0');
-          strcpy(name,UPLOAD_DEVICE);
-          strcat(name,number);
-          */
-          //void FirebaseJsonArray::set(const String &path, FirebaseJson &json)
           JSON_Conversion2(msg_line,0,&data_j);
-          //data.set(name,data_j);
           data.add(data_j);
-          //JSON_Conversion(msg_line,0);
           data_j.clear();
         }
+
+        //arreglas la condicion debe ser alcanar 3 y cargar en firebase
+        if((cycles>=3)||(loops-1==i))
+        {
+          #ifdef TEST
+            Serial.println(" ********************************** ");
+            data.toString(jsonStr, true);
+            Serial.println(jsonStr);
+            Serial.println(" ********************************** ");
+          #endif
+
+          rtn = dataupload2(&data);
+          
+          #ifdef TEST
+            Serial.println("Borrado de memoria");
+          #endif
+          
+          data.clear();
+        }
       }
-      clean_JSON_array();
+      //clean_JSON_array();
+    }
+
+    /*
+
+    if(loops>0)
+    {
       #ifdef TEST
         Serial.println(" ********************************** ");
         data.toString(jsonStr, true);
         Serial.println(jsonStr);
         Serial.println(" ********************************** ");
       #endif
+      rtn = dataupload2(&data);
     }
-    rtn = dataupload();
+
+    */
+
     #ifdef TEST
-      Serial.println("TRack1");
+      Serial.println("Borrado de final");
     #endif
-    data.clear();
-    #ifdef TEST
-    Serial.println("TRack2");
-    #endif
-    return rtn;
+    //data.clear();
+    clean_JSON_array();
+
+    if(rtn)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 
   bool Firebase_enable()

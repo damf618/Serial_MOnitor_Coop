@@ -66,6 +66,11 @@ void loop1()
             continue;
         }
         
+        #ifdef TEST
+            Serial.println(F("Firebase Val"));
+            delay(500);
+        #endif
+
         if (!System.Firebase_enable())
         //if (1!=1)
         {
@@ -88,7 +93,7 @@ void loop1()
         {
             taskToken = SERIAL_REQ;
         }
-        OLEDSema.post();
+        //OLEDSema.post();
         taskSema.post();
         //delay(5000);
     }
@@ -99,6 +104,11 @@ void loop2()
 {
     for (;;) // explicitly run forever without returning
     {
+        #ifdef TEST
+            Serial.println(F("OLED Disp"));
+            delay(500);
+        #endif
+
         OLEDSema.wait();
         {
             CoopMutexLock serialLock(OLEDMutex);
@@ -216,7 +226,8 @@ void loop4()
         }
         */
         taskSema.post();
-        taskToken = FIREB_UP;
+        //taskToken = FIREB_UP;
+        taskToken = FIREB_VAL;
         yield();
     }
 }
@@ -277,6 +288,18 @@ void SerialEvent()
             #ifdef TEST
             Serial.println(F(".\n No more Serial listening"));
             #endif
+
+            //AQUI!!!!!
+            #ifdef TEST
+                if (!System.Firebase_upload())
+                {
+                    Serial.println(F("Firebase Upload -FAILED- Server not reacheable"));
+                }
+            #else
+                System.Firebase_upload();
+            #endif
+            //AQUI!!
+
         }
     }
     else
@@ -419,8 +442,8 @@ void setup()
     task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x3E8);//3E8
     if (!*task2) {Serial.printf("CoopTask %s out of stack\n", task2->name().c_str());}
     //DAC
-    task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0xCE4);//9FC 
-    if (!*task3) {Serial.printf("CoopTask %s out of stack\n", task3->name().c_str());}
+    //task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0xF0A);//9FC, CE4,  
+    //if (!*task3) {Serial.printf("CoopTask %s out of stack\n", task3->name().c_str());}
     
     task4 = new CoopTask<void>(F("4- Serial Request"),      loop4,0x320);//320
     if (!*task4) {Serial.printf("CoopTask %s out of stack\n", task4->name().c_str());}
@@ -432,7 +455,7 @@ void setup()
     
     if (!task2->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task2->name().c_str()); }
     
-    if (!task3->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task3->name().c_str()); }
+    //if (!task3->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task3->name().c_str()); }
     
     if (!task4->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task4->name().c_str()); }
 
@@ -447,11 +470,12 @@ void loop()
     runCoopTasks();
     Blinky_Blinky();
     SerialEvent();
+    /*
     #ifdef TEST
         if(millis()-time3>=10000){
             time3 = millis();
             printReport();
         }
     #endif
-    
+    */
 }
