@@ -12,7 +12,7 @@
 #define FIREBASE_AUTH "N6jkN9OnR7bC8wHNw3VsPl8afBikm0ZzIYihTPIM"
 #define USER_FLAG "User Created"
 #define ENABLE_PATH "/Enable"
-#define INT_UPLOAD_PATH "/Abnormal_Devices"
+#define INT_UPLOAD_PATH "/Abnormal_Devices/"
 #define UPLOAD_DEVICE "Device"
 
 static FirebaseAuth auth;
@@ -484,19 +484,114 @@ bool dataupload()
   return rtn;
 }
 
-
-bool dataupload2(FirebaseJsonArray* data)
+bool Firebase_Clean()
 {
   bool rtn = false;
+  if (Firebase.set(fbdo, path_dataup, ""))
+  {
+    rtn = true;
+    #ifdef TEST
+      Serial.println(F("PASSED"));
+      Serial.print(F("VALUE: "));
+      Serial.println(count);
+    #endif 
+  }
+  #ifdef TEST
+  else
+  {
+    Serial.println(F("FAILED"));
+    Serial.println("REASON: " + fbdo.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println();
+  }
+  #endif
+
+  return rtn;
+}
+
+bool Firebase_Clean_Node(const char index)
+{
+  bool rtn = false;
+
+  char aux[100]="";
+
+  strcpy(aux,path_dataup);
+  aux[strlen(path_dataup)] = index + '0';
+
+  if (Firebase.deleteNode(fbdo, aux))
+  {
+    rtn = true;
+    #ifdef TEST
+      Serial.println(F("PASSED"));
+      Serial.print(F("VALUE: "));
+      Serial.println(count);
+    #endif 
+  }
+  #ifdef TEST
+  else
+  {
+    Serial.println(F("FAILED"));
+    Serial.println("REASON: " + fbdo.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println();
+  }
+  #endif
+  
+
+  /*
+
+  if (Firebase.set(fbdo, aux, ""))
+  {
+    rtn = true;
+    #ifdef TEST
+      Serial.println(F("PASSED"));
+      Serial.print(F("VALUE: "));
+      Serial.println(count);
+    #endif 
+  }
+  #ifdef TEST
+  else
+  {
+    Serial.println(F("FAILED"));
+    Serial.println("REASON: " + fbdo.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println();
+  }
+  #endif
+  */
+
+  return rtn;
+
+}
+
+bool dataupload2(FirebaseJsonArray* data, char index)
+{
+  bool rtn = false;
+  char aux[100]="";
 
   #ifdef TEST
     Serial.println(F("Firebase JSON Upload"));
   #endif
 
+  strcpy(aux,path_dataup);
+  aux[strlen(path_dataup)] = index + '0';
+  //prepara que ocurre en caso de que sean mas de 9.....
+  //strcat(aux,index);
+
+  #ifdef TEST
+    Serial.print("path: ");
+    Serial.println(aux);
+    Serial.print("index: ");
+    Serial.println(index);
+    Serial.print("original: ");
+    Serial.println(path_dataup);
+  #endif
+
   count++;
   if(count<=40)
   {
-    if (Firebase.setArray(fbdo, path_dataup, data[0]))
+    //if (Firebase.setArray(fbdo, path_dataup, data[0]))
+    if (Firebase.setArray(fbdo, aux, data[0]))
     {
       rtn = true;
     

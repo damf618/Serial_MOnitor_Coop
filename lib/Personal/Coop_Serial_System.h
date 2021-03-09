@@ -10,6 +10,7 @@
 FirebaseJsonArray  data;
 FirebaseJson       data_j;
 String jsonStr;
+int N_uploads= 0;
 
 class Coop_System
 {
@@ -102,16 +103,16 @@ public:
   {
     bool rtn = false;
     #ifdef TEST
-    Serial.println("Firebase Set Up");
+    Serial.println(F("Firebase Set Up"));
     #endif
     rtn = Firebase_Set_Up();
     #ifdef TEST
-    Serial.println("Firebase Set Up Correctly");
+    Serial.println(F("Firebase Set Up Correctly"));
     #endif
     if (rtn)
     {
     #ifdef TEST
-    Serial.println("Firebase 1st Push Up");
+    Serial.println(F("Firebase 1st Push Up"));
     #endif
       rtn = Firebase_First_Push();
     }
@@ -132,9 +133,40 @@ public:
     char aux[100];
     int loops= get_count_index();
     int cycles = 0;
+    char cycle_count = 0;
+    int cycles_needed = 0;
+    int resta = 0;
 
     if(loops>0)
     {
+      cycles_needed = (int)loops/3;
+      if(0!=loops%3)
+      {
+        cycles_needed++;
+      }
+      resta = N_uploads - cycles_needed;
+      #ifdef TEST
+        Serial.print(F("The actual number of Events is: "));
+        Serial.println(N_uploads);
+        Serial.print(F("There will be this number of cycles: "));
+        Serial.println(cycles_needed);
+      #endif
+      if(cycles_needed < N_uploads)
+      {
+        #ifdef TEST
+          Serial.print(F("We need to delete this number of blocks: "));
+          Serial.println(resta);
+        #endif
+        for (int i=0;i<resta;i++)
+        {
+          #ifdef TEST
+            Serial.print("paths to be deleted... addres + ");
+            Serial.println(cycles_needed + i);
+          #endif
+          Firebase_Clean_Node(cycles_needed + i);
+        }
+      }
+
       for(int i=0;i<loops;i++)
       {
         cycles++;
@@ -150,23 +182,34 @@ public:
         //arreglas la condicion debe ser alcanar 3 y cargar en firebase
         if((cycles>=3)||(loops-1==i))
         {
+          
           #ifdef TEST
-            Serial.println(" ********************************** ");
+            Serial.println(F(" ********************************** "));
             data.toString(jsonStr, true);
             Serial.println(jsonStr);
-            Serial.println(" ********************************** ");
+            Serial.println(F(" ********************************** "));
           #endif
 
-          rtn = dataupload2(&data);
-          
+          rtn = dataupload2(&data,cycle_count);
+          cycle_count++;
           #ifdef TEST
-            Serial.println("Borrado de memoria");
+            Serial.println(F("Borrado de memoria"));
           #endif
-          
+          cycles = 0;
           data.clear();
         }
       }
       //clean_JSON_array();
+    }
+    else
+    {
+      if(0!=N_uploads)
+      {
+        #ifdef TEST
+          Serial.println(F("Borrado total de Firebase"));
+          Firebase_Clean();
+        #endif
+      }
     }
 
     /*
@@ -183,10 +226,13 @@ public:
     }
 
     */
-
+    N_uploads = cycle_count;
     #ifdef TEST
-      Serial.println("Borrado de final");
+      Serial.println(F("Borrado de final"));
+      Serial.print(F("The new number of Events is: "));
+      Serial.println(N_uploads);
     #endif
+
     //data.clear();
     clean_JSON_array();
 
