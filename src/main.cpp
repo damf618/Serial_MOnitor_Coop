@@ -136,7 +136,7 @@ void loop3()
         #endif
 
         #ifdef TEST
-            if (!System.Firebase_upload())
+            if (!System.Firebase_upload(0))
             {
                 Serial.println(F("Firebase Upload -FAILED- Server not reacheable"));
             }
@@ -235,6 +235,7 @@ void loop4()
 void SerialEvent()
 {
     char inChar;
+    bool mode;
 
     if ((1==Serial_F_Event)||(1==Serial_A_Event))
     {
@@ -275,6 +276,7 @@ void SerialEvent()
                 #ifdef TEST
                     Serial.println(F("Out of Troubles"));
                 #endif
+                mode = false;
             }
             else if(Serial_A_Event)
             {
@@ -283,6 +285,7 @@ void SerialEvent()
                 #ifdef TEST
                     Serial.println(F("Out of Fire"));
                 #endif
+                mode = true;
             }
 
             #ifdef TEST
@@ -291,12 +294,22 @@ void SerialEvent()
 
             //AQUI!!!!!
             #ifdef TEST
-                if (!System.Firebase_upload())
+                Serial.print("The mode selected is: ");
+                if(!mode)
+                {
+                    Serial.println("False or Trouble");
+                }
+                else
+                {
+                    Serial.println("True or Alarm");
+                }
+
+                if (!System.Firebase_upload(mode))
                 {
                     Serial.println(F("Firebase Upload -FAILED- Server not reacheable"));
                 }
             #else
-                System.Firebase_upload();
+                System.Firebase_upload(mode);
             #endif
             //AQUI!!
 

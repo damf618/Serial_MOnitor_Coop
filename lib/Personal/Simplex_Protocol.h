@@ -40,6 +40,7 @@ extern "C" {
 #define TYPE_LEN	   25
 #define STATUS_LEN     25
 #define FAIL_MESSAGE   "FALLA"
+#define ALARM_MESSAGE  "ALARMA"
 #define SIMPLEX_NAME_MAX_LEN 39
 #define BEGIN          0
 
@@ -64,7 +65,8 @@ typedef struct message_parser_s{
 
 /*=====[Prototypes (declarations) of public functions]=======================*/
 
-message_parser_t Separator_Search(char* data);
+//message_parser_t Separator_Search(char* data);
+message_parser_t Separator_Search(char *data, bool mode);
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

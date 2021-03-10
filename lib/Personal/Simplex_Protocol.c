@@ -98,7 +98,7 @@ void Separator_Eval(message_parser_t *rtn, int i, char msg_char)
 	}
 }
 
-void Message_Final_Touch(message_parser_t *rtn)
+void Message_Final_Touch(message_parser_t *rtn, bool mode)
 {
 	int name_real_length=0;
 	char new_name[NAME_LEN];
@@ -117,7 +117,9 @@ void Message_Final_Touch(message_parser_t *rtn)
 	memset(rtn->name, 0, NAME_LEN);
 	memcpy(rtn->name,new_name,(name_real_length+1)*sizeof(char));
 	
-	if (0 == rtn->status[0])
+	//VALIDAR!!!!!!!! PARA QUE NO SOLO ESCRIBA  SINO TAMBIEN ALARMA
+
+	if (0 == rtn->status[0]) 
 	{
 		memcpy(rtn->status, FAIL_MESSAGE, TYPE_LEN * sizeof(char));
 		memset(rtn->type, 0, STATUS_LEN);
@@ -125,11 +127,18 @@ void Message_Final_Touch(message_parser_t *rtn)
 	else
 	{
 		rtn->type[strlen(rtn->type) - 1] = 0;
-		memcpy(rtn->status, FAIL_MESSAGE, TYPE_LEN * sizeof(char));
+		if(!mode)
+		{
+			memcpy(rtn->status, FAIL_MESSAGE, TYPE_LEN * sizeof(char));
+		}
+		else
+		{
+			memcpy(rtn->status, ALARM_MESSAGE, TYPE_LEN * sizeof(char));
+		}
 	}
 }
 
-message_parser_t Separator_Search(char *data)
+message_parser_t Separator_Search(char *data, bool mode)
 {
 	message_parser_t rtn;
 	message_event_t element;
@@ -191,6 +200,6 @@ message_parser_t Separator_Search(char *data)
 			}
 		}
 	}
-	Message_Final_Touch(&rtn);
+	Message_Final_Touch(&rtn,mode);
 	return rtn;
 }

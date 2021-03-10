@@ -536,29 +536,6 @@ bool Firebase_Clean_Node(const char index)
     Serial.println();
   }
   #endif
-  
-
-  /*
-
-  if (Firebase.set(fbdo, aux, ""))
-  {
-    rtn = true;
-    #ifdef TEST
-      Serial.println(F("PASSED"));
-      Serial.print(F("VALUE: "));
-      Serial.println(count);
-    #endif 
-  }
-  #ifdef TEST
-  else
-  {
-    Serial.println(F("FAILED"));
-    Serial.println("REASON: " + fbdo.errorReason());
-    Serial.println("------------------------------------");
-    Serial.println();
-  }
-  #endif
-  */
 
   return rtn;
 
@@ -627,6 +604,9 @@ void Json_Setup(String point_name, String name, String type, String status, bool
   json1[0].set("id", point_name);
   json1[0].set("name", name);
   json1[0].set("type", type);
+  json1[0].set("status", status);
+  
+  /*
   if(mode)
   {
     json1[0].set("status", "PROBLEMA");
@@ -635,8 +615,10 @@ void Json_Setup(String point_name, String name, String type, String status, bool
   {
     json1[0].set("status", "ALARMA");
   }
-}
+  */
 
+}
+/*
 FirebaseJson JSON_Conversion(char* Msg_Line, bool mode)
 {
   FirebaseJson data;
@@ -659,6 +641,7 @@ FirebaseJson JSON_Conversion(char* Msg_Line, bool mode)
   #endif
   return data;
 }
+*/
 
 void JSON_Conversion2(char* Msg_Line, bool mode,FirebaseJson* data)
 {
@@ -669,7 +652,7 @@ void JSON_Conversion2(char* Msg_Line, bool mode,FirebaseJson* data)
     jsonStr.reserve(100);
   #endif
 
-  rtn = Separator_Search(Msg_Line);
+  rtn = Separator_Search(Msg_Line, mode);
     
   Json_Setup(rtn.point_name,rtn.name,rtn.type,rtn.status,mode,data);
     

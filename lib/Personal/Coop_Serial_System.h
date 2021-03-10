@@ -126,7 +126,7 @@ public:
     return rtn;
   }
 
-  bool Firebase_upload()
+  bool Firebase_upload(bool mode)
   {
     bool rtn = false;
     char msg_line[100];
@@ -174,7 +174,7 @@ public:
         strcpy(aux,USER_FLAG);
         if(0!=memcmp (msg_line, aux, sizeof(msg_line)))
         {
-          JSON_Conversion2(msg_line,0,&data_j);
+          JSON_Conversion2(msg_line,mode,&data_j);
           data.add(data_j);
           data_j.clear();
         }
@@ -189,8 +189,16 @@ public:
             Serial.println(jsonStr);
             Serial.println(F(" ********************************** "));
           #endif
-
-          rtn = dataupload2(&data,cycle_count);
+          if(10>cycle_count)
+          {
+            rtn = dataupload2(&data,cycle_count);
+          }
+          #ifdef TEST
+            else
+            {
+              Serial.println(F(" Max number of failures reached!"));
+            }
+          #endif
           cycle_count++;
           #ifdef TEST
             Serial.println(F("Borrado de memoria"));

@@ -107,17 +107,17 @@ void Print_Msg_Data(bool mode)
   #ifdef TEST
   for (int i=0;i<=count_index;i++)
   {
-    Serial.print("Data ");
+    Serial.print(F("Data "));
     if(mode)
     {
-      Serial.print("Trouble ");
+      Serial.print(F("Trouble "));
     }
     else
     {
-      Serial.print("Fire ");
+      Serial.print(F("Fire "));
     }
     Serial.print(i);
-    Serial.println(" :");
+    Serial.println(F(" :"));
     Serial.println(Matriz[i]);
   }
   #endif
