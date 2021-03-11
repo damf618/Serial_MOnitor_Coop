@@ -116,17 +116,23 @@ void Message_Final_Touch(message_parser_t *rtn, bool mode)
 	memcpy(new_name,rtn->name,(name_real_length+1)*sizeof(char));
 	memset(rtn->name, 0, NAME_LEN);
 	memcpy(rtn->name,new_name,(name_real_length+1)*sizeof(char));
-	
-	//VALIDAR!!!!!!!! PARA QUE NO SOLO ESCRIBA  SINO TAMBIEN ALARMA
 
-	if (0 == rtn->status[0]) 
+	//PORQUE? DE DONDE SE SALE EL '?' SI DEBERIA SER 0POR EL MEMSET
+
+	if ('?' == rtn->status[0]) 
+	//if (3 >= strlen(rtn->status)) 
 	{
-		memcpy(rtn->status, FAIL_MESSAGE, TYPE_LEN * sizeof(char));
-		memset(rtn->type, 0, STATUS_LEN);
+		memset(rtn->status, 0, TYPE_LEN);
+		memcpy(rtn->status, rtn->type, STATUS_LEN * sizeof(char));
+		rtn->status[strlen(rtn->status)-1] = 0;
+		memset(rtn->type, 0, TYPE_LEN);
 	}
+	
 	else
 	{
+		rtn->status[strlen(rtn->status)-1] = 0;
 		rtn->type[strlen(rtn->type) - 1] = 0;
+		/*
 		if(!mode)
 		{
 			memcpy(rtn->status, FAIL_MESSAGE, TYPE_LEN * sizeof(char));
@@ -135,7 +141,9 @@ void Message_Final_Touch(message_parser_t *rtn, bool mode)
 		{
 			memcpy(rtn->status, ALARM_MESSAGE, TYPE_LEN * sizeof(char));
 		}
+		*/
 	}
+	
 }
 
 message_parser_t Separator_Search(char *data, bool mode)

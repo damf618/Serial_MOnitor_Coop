@@ -302,12 +302,16 @@ void SerialEvent()
                 else
                 {
                     Serial.println("True or Alarm");
+                    Serial.println("True or Alarm");
+                    System.Firebase_upload(mode);
+                    Serial.println("Download Complete");
                 }
-
+                /*
                 if (!System.Firebase_upload(mode))
                 {
                     Serial.println(F("Firebase Upload -FAILED- Server not reacheable"));
                 }
+                */
             #else
                 System.Firebase_upload(mode);
             #endif

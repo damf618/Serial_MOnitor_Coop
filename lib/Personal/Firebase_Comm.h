@@ -653,7 +653,11 @@ void JSON_Conversion2(char* Msg_Line, bool mode,FirebaseJson* data)
   #endif
 
   rtn = Separator_Search(Msg_Line, mode);
-    
+  #ifdef TEST
+    Serial.print("status: ");
+    Serial.println(rtn.status);
+  #endif
+
   Json_Setup(rtn.point_name,rtn.name,rtn.type,rtn.status,mode,data);
     
   #ifdef TEST
