@@ -395,6 +395,41 @@ bool Firebase_First_Push()
   return rtn;
 }
 
+int Firebase_Enable()
+{
+  int rtn = false;
+  count++;
+  if (Firebase.getInt(fbdo, enable_path))
+  {
+    if (fbdo.dataType() == "int")
+    {
+      #ifdef TEST
+        Serial.print(F("DATA READ from Firebase: "));
+        Serial.println(fbdo.intData());
+        Serial.print(F("VALUE: "));
+        Serial.println(count);
+      #endif
+      rtn = fbdo.intData();
+    }    
+    else
+    {
+      #ifdef TEST
+      Serial.print(F("Invalid Data Received from Firebase"));
+      #endif
+      rtn=1;
+    }
+    
+  }
+  #ifdef TEST
+  else
+  {
+    Serial.println(F("FAILED"));
+  }
+  #endif
+  return rtn;
+}
+
+
 bool Firebase_Check_Conn()
 {
   bool rtn = false;
@@ -416,6 +451,14 @@ bool Firebase_Check_Conn()
       Serial.println(F("Conexion Correcta"));  
       count =0;
       Firebase.begin(&config, &auth);
+      if(Firebase_Enable())
+      {
+        Serial.println(F("Conexion Restablecida"));
+      }
+      else
+      {
+        Serial.println(F("Conexion Erronea"));
+      }
     }
   }
   else
@@ -425,36 +468,6 @@ bool Firebase_Check_Conn()
   return rtn;
 }
 
-int Firebase_Enable()
-{
-  int rtn = false;
-  if (Firebase.getInt(fbdo, enable_path))
-  {
-    if (fbdo.dataType() == "int")
-    {
-      #ifdef TEST
-        Serial.print(F("DATA READ from Firebase: "));
-        Serial.println(fbdo.intData());
-      #endif
-      rtn = fbdo.intData();
-    }    
-    else
-    {
-      #ifdef TEST
-      Serial.print(F("Invalid Data Received from Firebase"));
-      #endif
-      rtn=1;
-    }
-    
-  }
-  #ifdef TEST
-  else
-  {
-    Serial.println(F("FAILED"));
-  }
-  #endif
-  return rtn;
-}
 
 bool dataupload()
 {
