@@ -1,7 +1,7 @@
 #ifndef COOPSystem_h
 #define COOPSystem_h
 
-#include <OLED.h>
+//#include <OLED.h>
 #include <WiFi_Config.h>
 #include <Firebase_Comm.h>
 #include <Serial_Msg.h>
@@ -50,15 +50,26 @@ public:
   {
     bool rtn = true;    
     jsonStr.reserve(500);
-    OLED_setup();
+
+    //**************
+    //OLED_setup();
+    OLED_Start();
 
     SPIFFS_Start();
-    OLED_write_start();
+
+    //**************
+    //OLED_write_start();
 
     //Conexion WiFi con datos
     if (WiFi_Configuration())
     {
-      OLED_write_done();
+      //**************
+      //OLED_write_done();
+      #ifdef TEST
+        Serial.println("*---**---**---**---*");
+        Serial.println("WIFI OK!");
+        Serial.println("*---**---**---**---*");
+      #endif
     }
     else
     {
@@ -258,7 +269,8 @@ public:
   {
     int rtn;
     rtn = Firebase_Enable();
-    oled_event_t msg_event;
+    
+    /*oled_event_t msg_event;
 
     if (0 == rtn)
     {
@@ -270,12 +282,18 @@ public:
       msg_event.oled_msg = F_ENABLED;
       Print_Upload(msg_event);
     }
+    */
     return rtn;
   }
 
   bool Print_OLED()
   {
-    return Print_Download();
+    //return Print_Download();
+    
+    testdrawbitmap();    // Draw a small bitmap image
+    OLED_Display.Screen_Set();
+
+    return true;
   }
 };
 

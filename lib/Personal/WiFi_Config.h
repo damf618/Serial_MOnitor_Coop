@@ -8,7 +8,7 @@
 #include <ESPAsyncDNSServer.h>
 
 #include <SPIFFS_Serial_Monitor.h>
-#include <OLED.h>
+//#include <OLED.h>
 
 #define TRIES 3
 #define HOSTNAME "www.monitorisolse.com"
@@ -81,7 +81,9 @@ bool Wifi_Connection(String SSID, String PSW)
   bool rtn=false;
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID,PSW);
-  OLED_write_init(SSID,ssid_ap);
+  //WIFI!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  //OLED_write_init(SSID,ssid_ap);
+  delay(5000);
   while ((WiFi.status() != WL_CONNECTED)&&(counter<=TRIES))
   {
     delay(500);
@@ -90,8 +92,8 @@ bool Wifi_Connection(String SSID, String PSW)
   if(counter<=TRIES)
   {
     rtn=true;
-    OLED_write_WiFi_OK();
-    OLED_write_done();
+    //OLED_write_WiFi_OK();
+    //OLED_write_done();
   }
   return rtn;
 }
@@ -116,12 +118,19 @@ void Wifi_AP()
   dnsServer.start(DNS_PORT, HOSTNAME, apIP);
 
   server.begin();
-  OLED_write_WiFi_AP(HOSTNAME);
+  //OLED_write_WiFi_AP(HOSTNAME);
 }
 
 void WiFi_Attention()
 {
-  OLED_Write_WiFi_Attention(ssid_ap,HOSTNAME);
+  //OLED_Write_WiFi_Attention(ssid_ap,HOSTNAME);
+  #ifdef TEST
+    Serial.print("\n Conectarse a: ");
+    Serial.println(ssid_ap);
+    Serial.print("Y entrar en la pagina web: ");
+    Serial.println(HOSTNAME);
+  #endif
+  delay(1000);
 }
 
 void Wifi_AP_setup()
@@ -135,7 +144,7 @@ void Wifi_AP_setup()
   Serial.print("Direccion IP: ");
   Serial.println(apIP);
   #endif
-  OLED_write_WiFi_AP(HOSTNAME);
+  //OLED_write_WiFi_AP(HOSTNAME);
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false, processor);
@@ -220,10 +229,20 @@ bool WiFi_Configuration()
   if((Data_SSID.length()>1)&&(Data_PSW.length()>1))
   {
     rtn = Wifi_Connection(Data_SSID,Data_PSW);
+    #ifdef TEST
+      Serial.print("Intentamos Conexion WiFi!: ");
+      Serial.print(rtn);
+    #endif
   }
+
+  #ifdef TEST
+    Serial.print("Conexion de Wi-Fi: ");
+    Serial.print(rtn);
+  #endif
+  
   if(!rtn)
   {
-    OLED_write_WiFi_Fail(ssid_ap);
+    //OLED_write_WiFi_Fail(ssid_ap);
     Wifi_AP_setup();
     all_set=false;
   }

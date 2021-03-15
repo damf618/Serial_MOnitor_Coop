@@ -2,6 +2,7 @@
 
 #define TEST
 
+#include <Display_OLED.h>
 #include <CoopTask.h>
 #include <CoopSemaphore.h>
 #include <CoopMutex.h>
@@ -25,7 +26,7 @@
 #define USE_BUILTIN_TASK_SCHEDULER
 
 CoopSemaphore taskSema(1, 1);
-CoopSemaphore OLEDSema(0, 1);
+CoopSemaphore OLEDSema(1, 1);
 CoopMutex OLEDMutex;
 Coop_System System;
 
@@ -56,6 +57,7 @@ void Blinky_Blinky()
 // Task no.1: blink LED with 1 second delay.
 void loop1()
 {
+    
     for (;;) // explicitly run forever without returning
     {
         taskSema.wait();
@@ -104,17 +106,19 @@ void loop2()
 {
     for (;;) // explicitly run forever without returning
     {
+        /*
         #ifdef TEST
             Serial.println(F("OLED Disp"));
-            delay(500);
         #endif
+        */
 
         OLEDSema.wait();
         {
             CoopMutexLock serialLock(OLEDMutex);
             System.Print_OLED();
         }
-        //delay(1000);
+        OLEDSema.post();
+        delay(25);
         yield();
     }
 }
@@ -453,10 +457,10 @@ void setup()
         CoopTaskBase::useBuiltinScheduler();
     #endif
     
-    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0xE10); //E10 
+    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0x7D0); //E10 
     if (!*task1) {Serial.printf("CoopTask %s out of stack\n", task1->name().c_str());}
     
-    task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x3E8);//3E8
+    task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x5DC);//3E8
     if (!*task2) {Serial.printf("CoopTask %s out of stack\n", task2->name().c_str());}
     //DAC
     //task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0xF0A);//9FC, CE4,  
@@ -487,12 +491,12 @@ void loop()
     runCoopTasks();
     Blinky_Blinky();
     SerialEvent();
-    /*
+    
     #ifdef TEST
         if(millis()-time3>=10000){
             time3 = millis();
             printReport();
         }
     #endif
-    */
+    
 }

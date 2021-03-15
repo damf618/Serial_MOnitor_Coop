@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <OLED.h>
+//#include <OLED.h>
 
 #define MAXMSGS 60
 #define MAXMSGLENGTH 100

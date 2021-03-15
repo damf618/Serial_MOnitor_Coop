@@ -4,7 +4,7 @@
 #include <FirebaseESP8266.h>
 #include <ESP8266WiFi.h>
 #include <SPIFFS_Serial_Monitor.h>
-#include <OLED.h>
+//#include <OLED.h>
 #include <Simplex_Protocol.h>
 
 #define API_KEY "AIzaSyA7wXtS7zdsoGu7d5YBviLhCLpmWhPisU4"
@@ -244,13 +244,14 @@ bool Firebase_Set_Up()
   //Size and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
   Firebase.setwriteSizeLimit(fbdo, "small");
   
-  OLED_write_Firebase_Start();
+  //OLED_write_Firebase_Start();
 
   #ifdef TEST
     Serial.println(F("Firebase signup"));
     Serial.println(F("THINK1"));
   #endif
-  OLED_write_Firebase_Think();
+  
+  //OLED_write_Firebase_Think();
   
   if (0!=memcmp ( aux, user_created_c, sizeof(aux)))
   {
@@ -271,12 +272,16 @@ bool Firebase_Set_Up()
   #ifdef TEST
   Serial.println(F("THINK2"));
   #endif
-  OLED_write_Firebase_Think();
+  
+  //OLED_write_Firebase_Think();
+  
   prepareDatabaseRules(var, val, val);
   }
   else
   {
-    OLED_write_Firebase_Think();
+    
+    //OLED_write_Firebase_Think();
+    
     #ifdef TEST
     Serial.println(F("User already created"));
     #endif
@@ -285,12 +290,15 @@ bool Firebase_Set_Up()
   #ifdef TEST
   Serial.println(F("THINK3"));
   #endif
-  OLED_write_Firebase_Think();
+  
+  //OLED_write_Firebase_Think();
 
   #ifdef TEST
   Serial.println(F("THINK4"));
   #endif
-  OLED_write_Firebase_Think();
+  
+  //OLED_write_Firebase_Think();
+  
   #ifdef TEST
   Serial.println(F("THINK5"));
   #endif
@@ -313,7 +321,8 @@ bool Firebase_Set_Up()
   #ifdef TEST
   Serial.println(F("THINK6"));
   #endif
-  OLED_write_Firebase_Done();
+  
+  //OLED_write_Firebase_Done();
 
   strcpy(enable_path,path.c_str());
   strcat(enable_path, ENABLE_PATH);
