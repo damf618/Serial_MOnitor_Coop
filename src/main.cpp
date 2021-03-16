@@ -21,19 +21,35 @@
 #define SERIAL_REQ 4
 #define OLED_DISP  2
 #define FIREB_UP   3
-#define SERIAL_TIME 5000
+#define SERIAL_TIME 7500
+
+#define MSG_CLEAN     ""
+#define MSG_INIT      "Sistema en Arrranque"
+#define MSG_WIFI_INIT "Intentando conexion WiFi"
+#define MSG_WIFI_OK   "Conexion WiFi Correcta"
+#define MSG_WIFI_FAIL "Conexion WiFi Erronea"
+#define MSG_WIFI_AP   "Por favor ingresar a la red WiFi: "
+#define MSG_ALARM     "Consulta de Listado de Alarmas"
+#define MSG_FAILS     "Consulta de Listado de Fallas"
+
 
 #define USE_BUILTIN_TASK_SCHEDULER
 
 CoopSemaphore taskSema(1, 1);
 CoopSemaphore OLEDSema(1, 1);
-CoopMutex OLEDMutex;
+//CoopMutex OLEDMutex;
 Coop_System System;
 
 int taskToken       = FIREB_VAL;
 bool led            = false;
 bool Serial_F_Event = false;
 bool Serial_A_Event = false;
+bool WiFi_Con       = false;
+bool msg            = false;
+Central_State CAII  = NORMAL;
+char messageb[50]  = "";
+
+
 unsigned long time1,time2,time3,time_rev;
 String inputString;
 
@@ -76,23 +92,26 @@ void loop1()
         if (!System.Firebase_enable())
         //if (1!=1)
         {
+            WiFi_Con = false;
+
             if (WiFi.status() == WL_CONNECTED)
             {
                #ifdef TEST
                 Serial.println(F("Firebase Connection -FAILED-"));    
                #endif
-               ESP.reset();
+               //ESP.reset();
             }
             else
             {                
                #ifdef TEST
                 Serial.println(F("Wi-Fi Connection DOWN!"));    
                #endif
-               ESP.reset();
+               //ESP.reset();
             }
         }
         else
         {
+            WiFi_Con = true;
             taskToken = SERIAL_REQ;
         }
         //OLEDSema.post();
@@ -112,12 +131,12 @@ void loop2()
         #endif
         */
 
-        OLEDSema.wait();
-        {
-            CoopMutexLock serialLock(OLEDMutex);
-            System.Print_OLED();
-        }
-        OLEDSema.post();
+        //OLEDSema.wait();
+        //{
+            //CoopMutexLock serialLock(OLEDMutex);
+            System.Print_OLED(WiFi_Con,CAII,messageb);
+        //}
+        //OLEDSema.post();
         delay(25);
         yield();
     }
@@ -173,6 +192,11 @@ void loop4()
         #ifdef TEST
             Serial.print(F("- Fails -\n"));
         #endif
+
+        //*-**-*-*-
+        memcpy(messageb,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+        strcpy(messageb,MSG_FAILS);
+
         System.get_Fails();
         Serial_F_Event=1;
         time2 = millis();
@@ -203,6 +227,11 @@ void loop4()
         #ifdef TEST
             Serial.print(F("- Alarms -\n"));
         #endif
+
+        //*-**-*-*-
+        memcpy(messageb,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+        strcpy(messageb,MSG_ALARM);
+
         System.get_Alarms();
         Serial_A_Event=1;
         time2 = millis();
@@ -265,6 +294,7 @@ void SerialEvent()
                         Serial.println(inputString.c_str());
                     #endif
                     System.Serial_Msg_Upload(inputString);
+                    msg = true;
                     inputString = "";
                 }
             }
@@ -281,6 +311,16 @@ void SerialEvent()
                     Serial.println(F("Out of Troubles"));
                 #endif
                 mode = false;
+                
+                if(msg)
+                {
+                    CAII  = FAILURE;
+                }
+                else
+                {
+                    CAII  = NORMAL;
+                }
+                msg = false;
             }
             else if(Serial_A_Event)
             {
@@ -290,6 +330,16 @@ void SerialEvent()
                     Serial.println(F("Out of Fire"));
                 #endif
                 mode = true;
+
+                if((msg)&&(FAILURE == CAII))
+                {
+                    CAII  = BOTH;
+                }
+                else if(msg)
+                {
+                    CAII  = ALARM;
+                }
+                msg = false;
             }
 
             #ifdef TEST
@@ -491,12 +541,12 @@ void loop()
     runCoopTasks();
     Blinky_Blinky();
     SerialEvent();
-    
+    /*
     #ifdef TEST
         if(millis()-time3>=10000){
             time3 = millis();
             printReport();
         }
     #endif
-    
+    */
 }

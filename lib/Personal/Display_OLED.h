@@ -145,6 +145,7 @@ class Screen_Format
     display.setTextColor(SSD1306_BLACK,SSD1306_WHITE);
     display.setCursor(0,14);
     display.print(F("   Central: "));
+
     switch(CAI)
     {
       case NORMAL:
@@ -162,6 +163,7 @@ class Screen_Format
       default :  
         display.println(F("---------"));
     }
+    
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(Msg_pos,24);
     display.print(message);

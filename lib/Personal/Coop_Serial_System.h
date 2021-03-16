@@ -286,11 +286,13 @@ public:
     return rtn;
   }
 
-  bool Print_OLED()
+  bool Print_OLED(bool WiFi_Con, Central_State CAII, char * messagee)
   {
     //return Print_Download();
     
-    testdrawbitmap();    // Draw a small bitmap image
+    //testdrawbitmap();    // Draw a small bitmap image
+    OLED_Display.Screen_Refresh( WiFi_Con, CAII, messagee );
+
     OLED_Display.Screen_Set();
 
     return true;
