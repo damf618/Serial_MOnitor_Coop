@@ -48,7 +48,7 @@ const char* get_Serial_Msg()
   {
     count_rtn_index++;
     #ifdef TEST
-      Serial.print("Matri Index: ");
+      Serial.print(F("Matri Index: "));
       Serial.println(count_rtn_index-1);
     #endif
     return Matriz[count_rtn_index-1].c_str();
@@ -79,22 +79,22 @@ void Serial_Configuration()
 
 void Simplex_Init()
 {
-  Serial.print("exit\n");
+  Serial.print(F("exit\n"));
   delay(50);
-  Serial.print("LOGIN\n");
+  Serial.print(F("LOGIN\n"));
   delay(50);
-  Serial.print("333\n");
+  Serial.print(F("333\n"));
 }
 
 //TODO Make a previous validation to check if there are any fails
 void Simplex_Fail_List()
 {
-  Serial.print("L T\n");
+  Serial.print(F("L T\n"));
 }
 
 void Simplex_Alarm_List()
 {
-  Serial.print("L F\n");
+  Serial.print(F("L F\n"));
 }
 
 bool get_flag()

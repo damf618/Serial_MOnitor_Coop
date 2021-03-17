@@ -230,13 +230,13 @@ bool WiFi_Configuration()
   {
     rtn = Wifi_Connection(Data_SSID,Data_PSW);
     #ifdef TEST
-      Serial.print("Intentamos Conexion WiFi!: ");
+      Serial.print(F("Intentamos Conexion WiFi!: "));
       Serial.print(rtn);
     #endif
   }
 
   #ifdef TEST
-    Serial.print("Conexion de Wi-Fi: ");
+    Serial.print(F("Conexion de Wi-Fi: "));
     Serial.print(rtn);
   #endif
   

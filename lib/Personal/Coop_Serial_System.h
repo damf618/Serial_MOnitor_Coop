@@ -66,9 +66,9 @@ public:
       //**************
       //OLED_write_done();
       #ifdef TEST
-        Serial.println("*---**---**---**---*");
-        Serial.println("WIFI OK!");
-        Serial.println("*---**---**---**---*");
+        Serial.println(F("*---**---**---**---*"));
+        Serial.println(F("WIFI OK!"));
+        Serial.println(F("*---**---**---**---*"));
       #endif
     }
     else
@@ -171,7 +171,7 @@ public:
         for (int i=0;i<resta;i++)
         {
           #ifdef TEST
-            Serial.print("paths to be deleted... addres + ");
+            Serial.print(F("paths to be deleted... address + "));
             Serial.println(cycles_needed + i);
           #endif
           Firebase_Clean_Node(cycles_needed + i);

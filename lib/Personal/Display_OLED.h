@@ -163,7 +163,7 @@ class Screen_Format
       default :  
         display.println(F("---------"));
     }
-    
+
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(Msg_pos,24);
     display.print(message);
@@ -198,7 +198,7 @@ void OLED_Start()
   OLED_Display.Screen_Init();
 }
 
-
+/*
 void testdrawbitmap() {
 
   bool Connectivity;
@@ -242,3 +242,4 @@ void testdrawbitmap() {
   OLED_Display.Screen_Refresh(Connectivity, CAI_S,message);
  
 }
+*/
