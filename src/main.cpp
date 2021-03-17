@@ -21,17 +21,19 @@
 #define SERIAL_REQ 4
 #define OLED_DISP  2
 #define FIREB_UP   3
-#define SERIAL_TIME 7500
+//#define SERIAL_TIME 7500
+#define SERIAL_TIME 10
 
-#define MSG_CLEAN     ""
-#define MSG_INIT      "Sistema en Arrranque"
-#define MSG_WIFI_INIT "Intentando conexion WiFi"
-#define MSG_WIFI_OK   "Conexion WiFi Correcta"
-#define MSG_WIFI_FAIL "Conexion WiFi Erronea"
-#define MSG_WIFI_AP   "Por favor ingresar a la red WiFi: "
-#define MSG_ALARM     "Consulta de Listado de Alarmas"
-#define MSG_FAILS     "Consulta de Listado de Fallas"
-
+#define MSG_CLEAN      ""
+#define MSG_INIT       "Sistema en Arrranque"
+#define MSG_WIFI_INIT  "Intentando conexion WiFi"
+#define MSG_WIFI_OK    "Conexion WiFi Correcta"
+#define MSG_WIFI_FAIL  "Conexion WiFi Erronea"
+#define MSG_WIFI_AP    "Por favor ingresar a la red WiFi: "
+#define MSG_ALARM      "Consulta de Listado de Alarmas"
+#define MSG_FAILS      "Consulta de Listado de Fallas"
+#define FBASE_TRIES    5
+#define LOOP1_DELAY    24UL*60UL*60UL
 
 #define USE_BUILTIN_TASK_SCHEDULER
 
@@ -48,6 +50,7 @@ bool WiFi_Con       = false;
 bool msg            = false;
 Central_State CAII  = NORMAL;
 char messageb[50]  = "";
+int firebase_tries = 0;
 
 
 unsigned long time1,time2,time3,time_rev;
@@ -107,16 +110,19 @@ void loop1()
                 Serial.println(F("Wi-Fi Connection DOWN!"));    
                #endif
                //ESP.reset();
-            }
+            } 
         }
         else
         {
             WiFi_Con = true;
             taskToken = SERIAL_REQ;
+            taskSema.post();
         }
-        //OLEDSema.post();
-        taskSema.post();
-        //delay(5000);
+        #ifdef TEST
+            Serial.print(F("El estado de WiFi_Con es: "));
+            Serial.println(WiFi_Con);
+        #endif
+        //delay(LOOP1_DELAY);
     }
 }
 
@@ -290,7 +296,7 @@ void SerialEvent()
                 if (((inChar == '\n') || (inputString.length() >= 100))and(count_index<MAXMSGS))
                 {
                     #ifdef TEST
-                        Serial.print("The message detected is: ");
+                        Serial.print(F("The message detected is: "));
                         Serial.println(inputString.c_str());
                     #endif
                     System.Serial_Msg_Upload(inputString);
@@ -348,17 +354,17 @@ void SerialEvent()
 
             //AQUI!!!!!
             #ifdef TEST
-                Serial.print("The mode selected is: ");
+                Serial.print(F("The mode selected is: "));
                 if(!mode)
                 {
-                    Serial.println("False or Trouble");
+                    Serial.println(F("False or Trouble"));
                 }
                 else
                 {
-                    Serial.println("True or Alarm");
-                    Serial.println("True or Alarm");
+                    Serial.println(F("True or Alarm"));
+                    Serial.println(F("True or Alarm"));
                     System.Firebase_upload(mode);
-                    Serial.println("Download Complete");
+                    Serial.println(F("Download Complete"));
                 }
                 /*
                 if (!System.Firebase_upload(mode))
@@ -376,6 +382,46 @@ void SerialEvent()
     else
     {
         Serial.read();
+    }
+
+}
+
+void Fix_Firebase()
+{
+    bool  rtn =false;
+
+    if(!WiFi_Con)
+    {
+        #ifdef TEST
+            Serial.println(F("Reparacion de Conexion de Firebase "));
+        #endif
+        rtn = System.WiFi_Val();
+
+            if(rtn)
+            {
+                #ifdef TEST
+                    Serial.println(F("Restaurado correctamente"));
+                #endif
+                WiFi_Con = 1;
+                taskToken = FIREB_VAL;
+                taskSema.post();
+                firebase_tries = 0;
+            }
+            else
+            {
+                #ifdef TEST
+                    Serial.println(F("Restauracion fallida"));
+                #endif
+                firebase_tries++;
+            }
+        if(FBASE_TRIES<=firebase_tries)
+        {
+            #ifdef TEST
+                Serial.println(F("Maximo numero de Intentos de reparacion"));
+            #endif
+            ESP.reset();
+        }
+        
     }
 }
 
@@ -438,6 +484,7 @@ void setup()
                 if (System.Wi_Fi_Connection())
                 {
                     Wifi_Conn = true;
+                    WiFi_Con  = true;
                 }
             }
             else
@@ -446,6 +493,10 @@ void setup()
                 System.WiFi_Attention_OLED();
             }
         }
+    }
+    else
+    {
+        WiFi_Con  = true;
     }
     
     fire_connect=false;
@@ -507,7 +558,7 @@ void setup()
         CoopTaskBase::useBuiltinScheduler();
     #endif
     
-    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0x7D0); //E10 
+    task1 = new CoopTask<void>(F("1- Firebase Validation"), loop1,0xE10); //E10 
     if (!*task1) {Serial.printf("CoopTask %s out of stack\n", task1->name().c_str());}
     
     task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x5DC);//3E8
@@ -533,6 +584,12 @@ void setup()
     time1    = millis();
     time3    = time1;
     time_rev = time1;
+
+    #ifdef TEST
+        Serial.print(F("El estado de WiFi_Con es: "));
+        Serial.println(WiFi_Con);
+    #endif
+    
 }
 
 void loop()
@@ -541,12 +598,13 @@ void loop()
     runCoopTasks();
     Blinky_Blinky();
     SerialEvent();
-    /*
+    Fix_Firebase();
+    
     #ifdef TEST
         if(millis()-time3>=10000){
             time3 = millis();
             printReport();
         }
     #endif
-    */
+    
 }
