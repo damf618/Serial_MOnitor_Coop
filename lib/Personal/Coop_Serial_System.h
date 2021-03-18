@@ -148,7 +148,7 @@ public:
     int cycles_needed = 0;
     int resta = 0;
 
-    if(loops>0)
+    if(loops>=0)
     {
       cycles_needed = (int)loops/3;
       if(0!=loops%3)
@@ -174,10 +174,15 @@ public:
             Serial.print(F("paths to be deleted... address + "));
             Serial.println(cycles_needed + i);
           #endif
-          Firebase_Clean_Node(cycles_needed + i);
+          rtn = Firebase_Clean_Node(cycles_needed + i);
         }
       }
-
+      else if(0 == cycles_needed)
+      {
+        rtn = true;
+      }
+      if(0!=loops)
+      {
       for(int i=0;i<loops;i++)
       {
         cycles++;
@@ -218,15 +223,22 @@ public:
           data.clear();
         }
       }
+      }
       //clean_JSON_array();
     }
+    //VERIFICACION DE LOOPS PARA EVITAR EL FFIX
+    /*
+    else if(0 == loops)
+    {
+      rtn = true;
+    }*/
     else
     {
       if(0!=N_uploads)
       {
         #ifdef TEST
           Serial.println(F("Borrado total de Firebase"));
-          Firebase_Clean();
+          rtn = Firebase_Clean();
         #endif
       }
     }
@@ -254,7 +266,7 @@ public:
 
     //data.clear();
     clean_JSON_array();
-
+  /*
     if(rtn)
     {
       return true;
@@ -263,6 +275,8 @@ public:
     {
       return false;
     }
+  */
+    return rtn;
   }
 
   bool Firebase_enable()

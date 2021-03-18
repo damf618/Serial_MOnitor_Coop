@@ -14,7 +14,7 @@
 #define ENABLE_PATH "/Enable"
 #define INT_UPLOAD_PATH "/Abnormal_Devices/"
 #define UPLOAD_DEVICE "Device"
-#define FIREBASE_TRIES 80
+#define FIREBASE_TRIES 50
 
 static FirebaseAuth auth;
 static FirebaseConfig config;
@@ -434,8 +434,17 @@ int Firebase_Enable()
 bool Firebase_Check_Conn()
 {
   bool rtn = false;
+  #ifdef TEST
   if (FIREBASE_TRIES <= count)
   {
+    Serial.println(F("Recuperacion Periodica"));
+  }
+  else
+  {
+    Serial.println(F("Recuperacion ForXSada"));  
+  }
+  #endif
+
     rtn = fbdo.httpConnected();
 #ifdef TEST
     Serial.println(F("Validacion de Conexion HTTP"));
@@ -470,7 +479,7 @@ bool Firebase_Check_Conn()
     {
       Serial.println(F("Conexion NO pudo ser Pausada"));
     }
-  }
+
   return rtn;
 }
 
@@ -516,6 +525,7 @@ bool dataupload()
 bool Firebase_Clean()
 {
   bool rtn = false;
+  count++;
   if (Firebase.set(fbdo, path_dataup, ""))
   {
     rtn = true;
@@ -543,6 +553,8 @@ bool Firebase_Clean_Node(const char index)
   bool rtn = false;
 
   char aux[100] = "";
+
+  count++;
 
   strcpy(aux, path_dataup);
   aux[strlen(path_dataup)] = index + '0';
@@ -616,10 +628,12 @@ bool dataupload2(FirebaseJsonArray *data, char index)
     }
 #endif
   }
+  /*
   else
   {
     Firebase_Check_Conn();
   }
+  */
 
   return rtn;
 }
