@@ -7,8 +7,13 @@
 
 #define MAXMSGS 60
 #define MAXMSGLENGTH 100
-#define TIME_WAIT 2500
 #define ERROR_MSG "NO DATA"
+
+/*
+* Matri no requiere ser de MAXMSGS (60) porque lo maximo a cargar son 20 - 30 mensajes.
+* Lo que representa un unto de mejora.  
+*
+*/
 
 bool stringComplete = false; // whether the string is complete
 String Matriz[MAXMSGS];
@@ -61,6 +66,12 @@ const char* get_Serial_Msg()
 
 void Msg_Upload(String inputString)
 {
+  /*
+  *   IMPORTANTE INCLUIR VALIDACION DE INDEX PARA realiar la carga en MATRIX!
+  *   Si se sobre pasa de MAXMSGSdebe ser ignorado!!!!
+  * 
+  * 
+  */
   Matriz[count_index] = inputString;
   count_index++;
   stringComplete = true;

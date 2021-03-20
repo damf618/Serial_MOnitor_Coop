@@ -14,7 +14,7 @@
 #define ENABLE_PATH "/Enable"
 #define INT_UPLOAD_PATH "/Abnormal_Devices/"
 #define UPLOAD_DEVICE "Device"
-#define FIREBASE_TRIES 50
+#define FIREBASE_TRIES 70
 
 static FirebaseAuth auth;
 static FirebaseConfig config;
