@@ -1,3 +1,6 @@
+#ifndef DISPLAY_OLED_h
+#define DISPLAY_OLED_h
+
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -18,6 +21,22 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 #define LOGO_HEIGHT3   20
 #define LOGO_WIDTH3    20
+
+#define MSG_CLEAN        ""
+#define MSG_INIT         " - Sistema Inicializando - "
+#define MSG_WIFI_INIT    " - Intentando conexion WiFi - "
+#define MSG_WIFI_OK      " - Conexion WiFi Correcta - "
+#define MSG_WIFI_FAIL    " - Conexion WiFi Erronea - "
+#define MSG_WIFI_AP1     " - Ingresar a la red WiFi: '"
+#define MSG_WIFI_AP2     "' y Entrar en pagina web: '"
+#define MSG_ALARM        " - Consulta de Listado de Alarmas - "
+#define MSG_FAILS        " - Consulta de Listado de Fallas - "
+#define MSG_FIREBASE     " - Configuracion de Servidor - "
+#define MSG_CAI          " - Conexion con Central Simplex - "
+#define MSG_FIREBASE_OK  " - Servidor en Linea - "
+#define MSG_CAI_OK       " - Central en Linea - "
+
+
 
 static const unsigned char PROGMEM logo_isolse_bmp[] =
 { // 'Isolse Logo2', 128x32px
@@ -55,9 +74,9 @@ static const unsigned char PROGMEM logo_isolse_bmp[] =
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-
 static const unsigned char PROGMEM logo_bmp[] =
-{ 0x03, 0xe0, 0x00, 0x1f, 0xfc, 0x00, 0x7c, 0x1f, 0x00, 0xf0, 0x07, 0x80, 0x47, 0xf1, 0x00, 0x1f,
+{ // 'Oto logo'
+0x03, 0xe0, 0x00, 0x1f, 0xfc, 0x00, 0x7c, 0x1f, 0x00, 0xf0, 0x07, 0x80, 0x47, 0xf1, 0x00, 0x1f,
 0x7c, 0x00, 0x38, 0x0c, 0x00, 0x13, 0xe4, 0x00, 0x07, 0xf0, 0x00, 0x06, 0x30, 0x00, 0x00, 0x80,
 0x00, 0x01, 0xc0, 0x00, 0x00, 0x80, 0x00  };
 
@@ -82,7 +101,6 @@ static const unsigned char PROGMEM logo3_bmp[] =
 0xe0, 0x4c, 0xf3, 0x20, 0x44, 0x22, 0x20, 0x66, 0x06, 0x60, 0x33, 0xfc, 0x40, 0x30, 0xf0, 0xc0,
 0x1c, 0x01, 0x80, 0x0f, 0x07, 0x00, 0x03, 0xfc, 0x00, 0x00, 0x00, 0x00};
 
-
 #define OFFTIME 650
 #define ONTIME  1050
 
@@ -102,7 +120,7 @@ class Screen_Format
   unsigned long blinky_time;
   bool WiFi_Conn;
   Central_State CAI;
-  char message[500];
+  char message[200];
   public:
 
   void Screen_Init()
@@ -117,10 +135,31 @@ class Screen_Format
 
   void Screen_Refresh(bool WiFi_Con, Central_State CAII, char * messagee )
   {
-    Msg_len =  -6*strlen(message);
+    Msg_pos= display.width();
+    Msg_len =  -6*strlen(messagee);
+    #ifdef TEST
+      Serial.print("El nuevo largo del mensaje es de: ");
+      Serial.print(Msg_len);
+    #endif
     WiFi_Conn = WiFi_Con;
     CAI = CAII;
     strcpy(message,messagee);
+  }
+
+  void Screen_Loop_Refresh(bool WiFi_Con, Central_State CAII, char * messagee, bool refresh )
+  {
+    if(refresh)
+    {
+      Msg_pos= display.width();
+      Msg_len =  -6*strlen(messagee);
+      #ifdef TEST
+        Serial.print("El nuevo largo del mensaje es de: ");
+        Serial.print(Msg_len);
+      #endif
+      strcpy(message,messagee);
+    }
+    WiFi_Conn = WiFi_Con;
+    CAI = CAII;
   }
 
   void Screen_Set()
@@ -177,14 +216,45 @@ class Screen_Format
     display.display();
   }
 
+  bool get_WiFi()
+  {
+    return WiFi_Conn;
+  }
 };
 
 Screen_Format OLED_Display;
-
 unsigned long timey = 0;
+unsigned long showtiming;
+bool ap_oled=false;
+
+void OLED_show(int time, char* mssg)
+{
+  unsigned long timing;
+  char msg[10];
+
+  #ifdef TEST
+    Serial.print("El mensaje a imprimir en OLED es: ");
+    Serial.println(mssg);
+  #endif
+
+  timing = millis();
+  while(time>(millis()-timing))
+  {  
+    OLED_Display.Screen_Set();
+    delay(25);
+  }
+  
+  memcpy(msg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  OLED_Display.Screen_Refresh(OLED_Display.get_WiFi(),NORMAL,msg);  
+  OLED_Display.Screen_Set();
+
+}
 
 void OLED_Start()
 {
+  char mssg[50];
+  int showtime = 7000;
+
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
@@ -196,50 +266,120 @@ void OLED_Start()
   delay(4000); // Pause for 2 seconds
   
   OLED_Display.Screen_Init();
+
+  memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  strcpy(mssg,MSG_INIT);   
+
+  OLED_Display.Screen_Refresh(false,NORMAL,mssg);
+  OLED_show(showtime,mssg);
 }
 
-/*
-void testdrawbitmap() {
+void OLED_WiFi()
+{
+  char mssg[50];
+  int showtime = 10000;
 
-  bool Connectivity;
-  Central_State CAI_S;
-  char message[300]="";
-  char messagea[100]="";
-  char messageb[100]="";
+  memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  strcpy(mssg,MSG_WIFI_INIT);   
+  OLED_Display.Screen_Refresh(false,NORMAL,mssg);
+  
+  OLED_show(showtime,mssg);
+}
 
-  if(millis()-timey>=30000){
-      timey=millis();
-    }
- 
-  if((millis()-timey<=10000)||(millis()-timey>=22000))
+void OLED_Firebase()
+{
+  char mssg[50];
+  int showtime = 15000;
+
+  memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  strcpy(mssg,MSG_FIREBASE);   
+  OLED_Display.Screen_Refresh(true,NORMAL,mssg);
+
+  OLED_show(showtime,mssg);
+}
+
+void OLED_Serial()
+{
+  char mssg[50];
+  int showtime = 15000;
+
+  memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  strcpy(mssg,MSG_CAI);   
+  OLED_Display.Screen_Refresh(true,NORMAL,mssg);
+
+  OLED_show(showtime,mssg);
+}
+
+void OLED_WiFi_AP(const char * SSID, const char * Hostname)
+{
+  if(!ap_oled)
   {
-      Connectivity = true;
-      strcpy(messagea,"Prueba de Conectividad Firebase OK");
+    char mssg[150];
+  
+    memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+    strcpy(mssg,MSG_WIFI_AP1);
+    strcat(mssg,SSID);
+    strcat(mssg,MSG_WIFI_AP2);
+    strcat(mssg,Hostname);
+    strcat(mssg,"' - ");
+    OLED_Display.Screen_Refresh(false,NORMAL,mssg);
+    ap_oled = true;
+    #ifdef TEST
+      Serial.print("El mensaje a imprimir en OLED es: ");
+      Serial.println(mssg);
+    #endif
+  }
+  else
+  { 
+    OLED_Display.Screen_Set();
+    delay(35);
+  }
+  
+}
+
+void OLED_WiFi_State(bool status)
+{
+  char mssg[50];
+  int showtime=10000;
+  
+  memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  if(status)
+  {
+    strcpy(mssg,MSG_WIFI_OK);
+    OLED_Display.Screen_Refresh(true,NORMAL,mssg);
   }
   else
   {
-      Connectivity = false;
-      strcpy(messagea,"Prueba de Conectividad Firebase ERROR");
+    strcpy(mssg,MSG_WIFI_FAIL);
+    OLED_Display.Screen_Refresh(false,NORMAL,mssg);
   }
-  if(millis()-timey<=9000)
-  {
-    CAI_S= ALARM;
-    strcpy(messageb," - Prueba de Central en estado de Alarma");
-  }
-  else if(millis()-timey<=19000)
-  {
-    CAI_S= FAILURE;
-    strcpy(messageb," - Prueba de Central en estado de Falla");
-  }
-  else
-  {
-    CAI_S= NORMAL;
-    strcpy(messageb," - Prueba de Central en estado Normal");
-  }
-  strcat(message,messagea);
-  strcat(message,messageb);
 
-  OLED_Display.Screen_Refresh(Connectivity, CAI_S,message);
- 
+  showtiming = millis();
+  OLED_show(showtime,mssg);
 }
-*/
+
+void OLED_Firebase_OK()
+{
+  char mssg[50];
+  int showtime = 10000;
+
+  memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  strcpy(mssg,MSG_FIREBASE_OK);   
+  OLED_Display.Screen_Refresh(true,NORMAL,mssg);
+
+  OLED_show(showtime,mssg);
+}
+
+void OLED_CAI_OK()
+{
+  char mssg[50];
+  int showtime = 10000;
+
+  memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  strcpy(mssg,MSG_CAI_OK);   
+  OLED_Display.Screen_Refresh(true,NORMAL,mssg);
+
+  OLED_show(showtime,mssg);
+}
+
+#endif

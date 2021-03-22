@@ -98,7 +98,7 @@ void Separator_Eval(message_parser_t *rtn, int i, char msg_char)
 	}
 }
 
-void Message_Final_Touch(message_parser_t *rtn, bool mode)
+void Message_Final_Touch(message_parser_t *rtn)
 {
 	int name_real_length=0;
 	char new_name[NAME_LEN];
@@ -132,28 +132,17 @@ void Message_Final_Touch(message_parser_t *rtn, bool mode)
 	{
 		rtn->status[strlen(rtn->status)-1] = 0;
 		rtn->type[strlen(rtn->type) - 1] = 0;
-		/*
-		if(!mode)
-		{
-			memcpy(rtn->status, FAIL_MESSAGE, TYPE_LEN * sizeof(char));
-		}
-		else
-		{
-			memcpy(rtn->status, ALARM_MESSAGE, TYPE_LEN * sizeof(char));
-		}
-		*/
 	}
 	
 }
 
-message_parser_t Separator_Search(char *data, bool mode)
+message_parser_t Separator_Search(char *data)
 {
 	message_parser_t rtn;
 	message_event_t element;
 
 	Message_Setup(&rtn);
-	//bool space_flag;
-	//bool separator_flag;
+
 	int name_counter=-1;
 	bool name_flag=FALSE;
 
@@ -208,6 +197,6 @@ message_parser_t Separator_Search(char *data, bool mode)
 			}
 		}
 	}
-	Message_Final_Touch(&rtn,mode);
+	Message_Final_Touch(&rtn);
 	return rtn;
 }

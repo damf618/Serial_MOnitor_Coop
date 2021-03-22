@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #define TEST
+#define MEMORY
 
 #include <Display_OLED.h>
 #include <CoopTask.h>
@@ -22,16 +23,7 @@
 #define OLED_DISP  2
 #define FIREB_UP   3
 #define SERIAL_TIME 7500
-//#define SERIAL_TIME 100
 
-#define MSG_CLEAN      ""
-#define MSG_INIT       "Sistema en Arrranque"
-#define MSG_WIFI_INIT  "Intentando conexion WiFi"
-#define MSG_WIFI_OK    "Conexion WiFi Correcta"
-#define MSG_WIFI_FAIL  "Conexion WiFi Erronea"
-#define MSG_WIFI_AP    "Por favor ingresar a la red WiFi: "
-#define MSG_ALARM      "Consulta de Listado de Alarmas"
-#define MSG_FAILS      "Consulta de Listado de Fallas"
 #define FBASE_TRIES    50
 //#define LOOP1_DELAY    24UL*60UL*60UL*1000UL
 #define LOOP1_DELAY    3000
@@ -42,8 +34,7 @@
 
 CoopSemaphore taskSema(1, 1);
 CoopSemaphore valSema (1, 1);
-//CoopSemaphore OLEDSema(1, 1);
-//CoopMutex OLEDMutex;
+CoopMutex OLEDMutex;
 Coop_System System;
 
 int taskToken       = FIREB_VAL;
@@ -92,7 +83,6 @@ void loop1()
         #endif
 
         if (!System.Firebase_enable())
-        //if (1!=1)
         {
             WiFi_Con = false;
 
@@ -115,12 +105,12 @@ void loop1()
         {
             WiFi_Con = true;
             taskToken = SERIAL_REQ;
-            //taskSema.post();
         }
         #ifdef TEST
             Serial.print(F("El estado de WiFi_Con es: "));
             Serial.println(WiFi_Con);
         #endif
+
         delay(LOOP1_DELAY);
     }
 }
@@ -129,61 +119,16 @@ void loop1()
 void loop2()
 {
     for (;;) // explicitly run forever without returning
-    {
-        /*
-        #ifdef TEST
-            Serial.println(F("OLED Disp"));
-        #endif
-        */
-
-        //OLEDSema.wait();
-        //{
-            //CoopMutexLock serialLock(OLEDMutex);
-            System.Print_OLED(WiFi_Con,CAII,messageb);
-        //}
-        //OLEDSema.post();
-        delay(25);
-        //yield();
-    }
-}
-
-// Task no.3: blink LED with 0.05 second delay.
-void loop3()
-{
-    for (;;) // explicitly run forever without returning
-    {
-        taskSema.wait();
-        if (FIREB_UP != taskToken)
+    {       
         {
-            taskSema.post();
-            yield();
-            continue;
+            CoopMutexLock serialLock(OLEDMutex);
+            System.Print_OLED(WiFi_Con,CAII,messageb);
         }
-        #ifdef TEST
-            Serial.print(F("Task 3 In\n"));
-        #endif
-
-        #ifdef TEST
-            if (!System.Firebase_upload(0))
-            {
-                Serial.println(F("Firebase Upload -FAILED- Server not reacheable"));
-                WiFi_Con = 0;
-            }
-        #else
-            System.Firebase_upload();
-        #endif
-
-        #ifdef TEST
-            Serial.print(F("Task 3 Out\n"));
-        #endif
-
-        taskSema.post();
-        //taskToken = FIREB_VAL;
-        taskToken = SERIAL_REQ;
-        yield();
+        delay(25);
     }
 }
 
+// Task no.3: 
 void loop4()
 {
     for (;;) // explicitly run forever without returning
@@ -196,15 +141,15 @@ void loop4()
             continue;
         }
         
-        
         #ifdef TEST
             Serial.print(F("- Fails -\n"));
         #endif
 
         //*-**-*-*-
-        memcpy(messageb,MSG_CLEAN,strlen(MSG_CLEAN)+1);
-        strcpy(messageb,MSG_FAILS);
-
+        {
+            CoopMutexLock serialLock(OLEDMutex);        
+            System.Trouble_OLED(messageb);
+        }
         System.get_Fails();
         Serial_F_Event=1;
         time2 = millis();
@@ -225,28 +170,19 @@ void loop4()
                 break;    
             }
         }
-        
-        //UPLOAD IN OLED_DISPLAY QUEUE
-        /*
-        {
-            CoopMutexLock serialLock(OLEDMutex);
-            System.OLED_Events();
-        }
-        */
 
         #ifdef TEST
             Serial.print(F("- Alarms -\n"));
         #endif
 
         //*-**-*-*-
-        memcpy(messageb,MSG_CLEAN,strlen(MSG_CLEAN)+1);
-        strcpy(messageb,MSG_ALARM);
-
-        System.get_Alarms();
+        {
+            CoopMutexLock serialLock(OLEDMutex);        
+            System.Fire_OLED(messageb); 
+        }        
         Serial_A_Event=1;
         time2 = millis();
         yield();
-        
         
         while(Serial_A_Event)
         {
@@ -262,19 +198,14 @@ void loop4()
                 break;    
             }
         }
-        
 
-        //UPLOAD IN OLED_DISPLAY QUEUE
+        //*-**-*-*-
         /*
         {
-            CoopMutexLock serialLock(OLEDMutex);
-            System.OLED_Events();
+            CoopMutexLock serialLock(OLEDMutex);        
+            memcpy(messageb,MSG_CLEAN,strlen(MSG_CLEAN)+1);
         }
         */
-       //*-**-*-*-
-        memcpy(messageb,MSG_CLEAN,strlen(MSG_CLEAN)+1);
-        //taskToken = FIREB_UP;
-        //taskToken = FIREB_VAL;
         delay(LOOP4_DELAY);
         taskSema.post();
         yield();
@@ -284,7 +215,6 @@ void loop4()
 void SerialEvent()
 {
     char inChar;
-    bool mode=false;
 
     if ((1==Serial_F_Event)||(1==Serial_A_Event))
     {
@@ -309,6 +239,7 @@ void SerialEvent()
                         Serial.print(F("The message detected is: "));
                         Serial.println(inputString.c_str());
                     #endif
+
                     System.Serial_Msg_Upload(inputString);
                     msg = true;
                     inputString = "";
@@ -317,17 +248,21 @@ void SerialEvent()
         //En caso de no ser TEST o incluso si es un TEST Contrario almacenar la info para su procesamiento!
         if (millis() - time2 >= SERIAL_TIME)
         {
+            inputString = "";
             taskSema.post();
-            //taskToken = SERIAL_REQ;
+
+            #ifdef TEST
+                Serial.println(F(".\n No more Serial listening"));
+            #endif
 
             if(Serial_F_Event)
             {
                 System.Trouble_Protocol();
                 Serial_F_Event = false;
+                
                 #ifdef TEST
                     Serial.println(F("Out of Troubles"));
                 #endif
-                mode = false;
                 
                 if(msg)
                 {
@@ -343,10 +278,10 @@ void SerialEvent()
             {
                 System.Fire_Protocol();
                 Serial_A_Event = false;
+                
                 #ifdef TEST
                     Serial.println(F("Out of Fire"));
                 #endif
-                mode = true;
 
                 if((msg)&&(FAILURE == CAII))
                 {
@@ -357,40 +292,22 @@ void SerialEvent()
                     CAII  = ALARM;
                 }
                 msg = false;
-            }
 
-            #ifdef TEST
-            Serial.println(F(".\n No more Serial listening"));
-            #endif
-
-            //AQUI!!!!!
-            #ifdef TEST
-                Serial.print(F("The mode selected is: "));
-                if(!mode)
-                {
-                    Serial.println(F("False or Trouble"));
-                }
-                else
-                {
-                    Serial.println(F("True or Alarm"));
-                    Serial.println(F("True or Alarm"));
-                    if(!System.Firebase_upload(mode))
+                #ifdef TEST
+                    Serial.println(F("Upload Attempt"));
+                    if(!System.Firebase_upload())
                     {
                         WiFi_Con = 0;
+                        Serial.println(F("Upload Failed"));
                     }
-                    Serial.println(F("Download Complete"));
-                }
-                /*
-                if (!System.Firebase_upload(mode))
-                {
-                    Serial.println(F("Firebase Upload -FAILED- Server not reacheable"));
-                }
-                */
-            #else
-                System.Firebase_upload(mode);
-            #endif
-            //AQUI!!
-
+                    else
+                    {
+                        Serial.println(F("Upload Complete"));
+                    }
+                #else
+                    System.Firebase_upload();
+                #endif
+            }
         }
     }
     else
@@ -409,15 +326,14 @@ void Fix_Firebase()
         #ifdef TEST
             Serial.println(F("Reparacion de Conexion de Firebase "));
         #endif
-        rtn = System.WiFi_Val();
 
+        rtn = System.WiFi_Val();
             if(rtn)
             {
                 #ifdef TEST
                     Serial.println(F("Restaurado correctamente"));
                 #endif
                 WiFi_Con = 1;
-                //taskToken = FIREB_VAL;
                 valSema.post();
                 firebase_tries = 0;
             }
@@ -441,7 +357,6 @@ void Fix_Firebase()
 
 CoopTask<void>* task1;
 CoopTask<void>* task2;
-CoopTask<void>* task3;
 CoopTask<void>* task4;
 
 void printStackReport(CoopTaskBase* task)
@@ -457,7 +372,6 @@ void printReport()
     Serial.println(F("---------------------------------"));
     printStackReport(task1);
     printStackReport(task2);
-    printStackReport(task3);
     printStackReport(task4);
     Serial.print(F("ESP mem: "));
     Serial.println(ESP.getFreeHeap());
@@ -474,8 +388,8 @@ void setup()
     Serial.begin(115200);   
     inputString.reserve(MAXMSGLENGTH);
     WiFi.setSleepMode(WIFI_NONE_SLEEP);
+
     //Serial.swap(); NUevos pines y nos libramos del SerialDEBUG
-    
     /*
     Serial utiliza UART0, el cual está mapeado a los pines GPIO1 (TX) y GPIO3 (RX).
     El Serial puede ser redirigido a GPIO15 (TX) y GPIO13 (RX) llamando a Serial.swap()
@@ -484,13 +398,14 @@ void setup()
 
     // Setup the 3 pins as OUTPUT
     pinMode(LED_BUILTIN, OUTPUT);
+
     #ifdef TEST
         Serial.println(F("Wi-Fi Connection"));
         delay(500);
     #endif
+
     if (!System.Start())
     {
-    //LOOP1 INIT AND SETUP BLOCK
         while(!Wifi_Conn)
         {
             if (System.Wi_Fi_Status())
@@ -514,12 +429,12 @@ void setup()
     }
     
     fire_connect=false;
-    /*LOOP3 INIT FIREBASE CONNECTION */
-    //TODO VALIDATION
+
     #ifdef TEST
         Serial.println(F("Firebase Connection"));
         delay(500);
     #endif
+    
     while(!fire_connect)
     {
         if(System.Firebase_Set_up())
@@ -527,8 +442,9 @@ void setup()
             fire_connect=true;
         }
     }
-    /*LOOP4 SERIAL INIT SETUP*/
-    //TODO VALIDATION
+
+    System.Firebase_OLED();
+    
     #ifdef TEST
         Serial.println(F("Serial Connection"));
         delay(500);
@@ -568,6 +484,9 @@ void setup()
         Serial.println(F("Sistema Inicializado Correctamente"));
     #endif
 
+    System.CAI_OLED();
+
+
     #ifdef USE_BUILTIN_TASK_SCHEDULER
         CoopTaskBase::useBuiltinScheduler();
     #endif
@@ -581,7 +500,7 @@ void setup()
     //task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0xF0A);//9FC, CE4,  
     //if (!*task3) {Serial.printf("CoopTask %s out of stack\n", task3->name().c_str());}
     
-    task4 = new CoopTask<void>(F("4- Serial Request"),      loop4,0x4B0);//320
+    task4 = new CoopTask<void>(F("3- Serial Request"),      loop4,0x4B0);//320
     if (!*task4) {Serial.printf("CoopTask %s out of stack\n", task4->name().c_str());}
     
     // Add "loop1", "loop2" and "loop3" to CoopTask scheduling.
@@ -598,11 +517,6 @@ void setup()
     time1    = millis();
     time3    = time1;
     time_rev = time1;
-
-    #ifdef TEST
-        Serial.print(F("El estado de WiFi_Con es: "));
-        Serial.println(WiFi_Con);
-    #endif
     
 }
 
@@ -614,7 +528,7 @@ void loop()
     SerialEvent();
     Fix_Firebase();
     
-    #ifdef TEST
+    #ifdef MEMORY
         if(millis()-time3>=10000){
             time3 = millis();
             printReport();

@@ -3,17 +3,10 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-//#include <OLED.h>
 
-#define MAXMSGS 60
+#define MAXMSGS 21
 #define MAXMSGLENGTH 100
 #define ERROR_MSG "NO DATA"
-
-/*
-* Matri no requiere ser de MAXMSGS (60) porque lo maximo a cargar son 20 - 30 mensajes.
-* Lo que representa un unto de mejora.  
-*
-*/
 
 bool stringComplete = false; // whether the string is complete
 String Matriz[MAXMSGS];
@@ -49,7 +42,7 @@ void clean_JSON_array()
 
 const char* get_Serial_Msg()
 {
-  if(count_rtn_index<=count_index)
+  if(count_rtn_index <= count_index)
   {
     count_rtn_index++;
     #ifdef TEST
@@ -66,21 +59,19 @@ const char* get_Serial_Msg()
 
 void Msg_Upload(String inputString)
 {
-  /*
-  *   IMPORTANTE INCLUIR VALIDACION DE INDEX PARA realiar la carga en MATRIX!
-  *   Si se sobre pasa de MAXMSGSdebe ser ignorado!!!!
-  * 
-  * 
-  */
-  Matriz[count_index] = inputString;
-  count_index++;
-  stringComplete = true;
-  #ifdef TEST
-    Serial.print(F("Message number: "));
-    Serial.println((count_index-1));
-    Serial.print(F("The message received is: "));
-    Serial.println(inputString.c_str());
-  #endif
+
+  if(count_index <= MAXMSGS)
+  {
+    Matriz[count_index] = inputString;
+    count_index++;
+    stringComplete = true;
+    #ifdef TEST
+      Serial.print(F("Message number: "));
+      Serial.println((count_index-1));
+      Serial.print(F("The message received is: "));
+      Serial.println(inputString.c_str());
+    #endif
+  }
 }
 
 void Serial_Configuration()
@@ -113,20 +104,12 @@ bool get_flag()
   return stringComplete;
 }
 
-void Print_Msg_Data(bool mode)
+void Print_Msg_Data()
 {
   #ifdef TEST
   for (int i=0;i<=count_index;i++)
   {
     Serial.print(F("Data "));
-    if(mode)
-    {
-      Serial.print(F("Trouble "));
-    }
-    else
-    {
-      Serial.print(F("Fire "));
-    }
     Serial.print(i);
     Serial.println(F(" :"));
     Serial.println(Matriz[i]);

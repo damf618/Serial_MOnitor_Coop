@@ -1,7 +1,6 @@
 #ifndef COOPSystem_h
 #define COOPSystem_h
 
-//#include <OLED.h>
 #include <WiFi_Config.h>
 #include <Firebase_Comm.h>
 #include <Serial_Msg.h>
@@ -10,7 +9,9 @@
 FirebaseJsonArray  data;
 FirebaseJson       data_j;
 String jsonStr;
-int N_uploads= 0;
+int N_uploads = 0;
+char messageled[50]  = "";
+bool refresh_oled = false;
 
 class Coop_System
 {
@@ -24,7 +25,9 @@ public:
 
   void Serial_Config()
   {
+    OLED_Firebase_OK();
     Serial_Configuration(); 
+    OLED_Serial();
   }
 
   void Serial_Msg_Upload(String Msg)
@@ -34,37 +37,32 @@ public:
 
   void Trouble_Protocol()
   {
-    bool mode= true;
-    //Trouble_Msg_Data();
-    Print_Msg_Data(mode);
+    Print_Msg_Data();
   }
 
   void Fire_Protocol()
   {
-    //Fire_Msg_Data();
-    bool mode= false;
-    Print_Msg_Data(mode);
+    Print_Msg_Data();
   }
-
+  
   bool Start()
   {
     bool rtn = true;    
     jsonStr.reserve(500);
 
     //**************
-    //OLED_setup();
     OLED_Start();
 
     SPIFFS_Start();
 
     //**************
-    //OLED_write_start();
-
+    OLED_WiFi();
     //Conexion WiFi con datos
     if (WiFi_Configuration())
     {
       //**************
-      //OLED_write_done();
+      OLED_WiFi_State(true);
+
       #ifdef TEST
         Serial.println(F("*---**---**---**---*"));
         Serial.println(F("WIFI OK!"));
@@ -73,21 +71,34 @@ public:
     }
     else
     {
+      //**************
+      OLED_WiFi_State(false);
       rtn = false;
     }
-
     return rtn;
+  }
+
+  void CAI_OLED()
+  {
+    OLED_CAI_OK();
+  }
+
+  void Firebase_OLED()
+  {
+    OLED_Firebase_OK();
   }
 
   //TODO Make a previous validation to check if there are any fails
   void get_Fails()
   {
+    //OLED_Trouble();
     Simplex_Fail_List();
   }
 
   //TODO Make a previous validation to check if there are any fails
   void get_Alarms()
   {
+    //OLED_Fire();
     Simplex_Alarm_List();
   }
 
@@ -112,6 +123,7 @@ public:
 
   bool Firebase_Set_up()
   {
+    OLED_Firebase();
     bool rtn = false;
     #ifdef TEST
     Serial.println(F("Firebase Set Up"));
@@ -137,7 +149,7 @@ public:
     return rtn;
   }
 
-  bool Firebase_upload(bool mode)
+  bool Firebase_upload()
   {
     bool rtn = false;
     char msg_line[100];
@@ -190,7 +202,7 @@ public:
         strcpy(aux,USER_FLAG);
         if(0!=memcmp (msg_line, aux, sizeof(msg_line)))
         {
-          JSON_Conversion2(msg_line,mode,&data_j);
+          JSON_Conversion2(msg_line,&data_j);
           data.add(data_j);
           data_j.clear();
         }
@@ -226,12 +238,7 @@ public:
       }
       //clean_JSON_array();
     }
-    //VERIFICACION DE LOOPS PARA EVITAR EL FFIX
-    /*
-    else if(0 == loops)
-    {
-      rtn = true;
-    }*/
+
     else
     {
       if(0!=N_uploads)
@@ -243,20 +250,6 @@ public:
       }
     }
 
-    /*
-
-    if(loops>0)
-    {
-      #ifdef TEST
-        Serial.println(" ********************************** ");
-        data.toString(jsonStr, true);
-        Serial.println(jsonStr);
-        Serial.println(" ********************************** ");
-      #endif
-      rtn = dataupload2(&data);
-    }
-
-    */
     N_uploads = cycle_count;
     #ifdef TEST
       Serial.println(F("Borrado de final"));
@@ -264,18 +257,7 @@ public:
       Serial.println(N_uploads);
     #endif
 
-    //data.clear();
     clean_JSON_array();
-  /*
-    if(rtn)
-    {
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  */
     return rtn;
   }
 
@@ -283,33 +265,33 @@ public:
   {
     int rtn;
     rtn = Firebase_Enable();
-    
-    /*oled_event_t msg_event;
-
-    if (0 == rtn)
-    {
-      msg_event.oled_msg = WEB_CONFIG;
-      Print_Upload(msg_event);
-    }
-    else
-    {
-      msg_event.oled_msg = F_ENABLED;
-      Print_Upload(msg_event);
-    }
-    */
     return rtn;
   }
 
-  bool Print_OLED(bool WiFi_Con, Central_State CAII, char * messagee)
+  void Print_OLED(bool WiFi_Con, Central_State CAII, char * messagee)
   {
-    //return Print_Download();
     
-    //testdrawbitmap();    // Draw a small bitmap image
-    OLED_Display.Screen_Refresh( WiFi_Con, CAII, messagee );
-
+    OLED_Display.Screen_Loop_Refresh( WiFi_Con, CAII, messagee,refresh_oled);
+    //OLED_Display.Screen_Refresh( WiFi_Con, CAII, messagee);
     OLED_Display.Screen_Set();
+    if(refresh_oled)
+    {
+      refresh_oled=!refresh_oled;
+    }
+  }
 
-    return true;
+  void Trouble_OLED(char* msg)
+  {
+    refresh_oled=true;
+    memcpy(msg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+    strcpy(msg,MSG_FAILS);
+  }
+
+  void Fire_OLED(char* msg)
+  {
+    refresh_oled=true;
+    memcpy(msg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+    strcpy(msg,MSG_ALARM);
   }
 };
 

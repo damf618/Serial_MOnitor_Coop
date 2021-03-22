@@ -6,9 +6,8 @@
 #include <ESPAsyncWebServer.h>
 #include <Wire.h>
 #include <ESPAsyncDNSServer.h>
-
 #include <SPIFFS_Serial_Monitor.h>
-//#include <OLED.h>
+
 
 #define TRIES 3
 #define HOSTNAME "www.monitorisolse.com"
@@ -24,9 +23,6 @@ AsyncDNSServer dnsServer;
 
 bool all_set        = false;
 bool WiFi_Incorrect = true;
-
-//IPAddress IP;
-//extern SPIFFS;
 
 const char* WIFI_SSID  = "WIFI_SSID";
 const char* WIFI_PSW   = "WIFI_PSW";
@@ -81,7 +77,6 @@ bool Wifi_Connection(String SSID, String PSW)
   bool rtn=false;
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID,PSW);
-  //WIFI!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   //OLED_write_init(SSID,ssid_ap);
   delay(5000);
   while ((WiFi.status() != WL_CONNECTED)&&(counter<=TRIES))
@@ -112,9 +107,7 @@ void Wifi_AP()
 {
   // Start server
   WiFi.mode(WIFI_AP);
-  //WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP(ssid_ap, password_ap);
-  //dnsServer.setErrorReplyCode(AsyncDNSReplyCode::ServerFailure);
   dnsServer.start(DNS_PORT, HOSTNAME, apIP);
 
   server.begin();
@@ -130,7 +123,9 @@ void WiFi_Attention()
     Serial.print("Y entrar en la pagina web: ");
     Serial.println(HOSTNAME);
   #endif
-  delay(1000);
+
+  OLED_WiFi_AP(ssid_ap,HOSTNAME);
+  //delay(1000);
 }
 
 void Wifi_AP_setup()
@@ -214,7 +209,6 @@ void Wifi_AP_setup()
     #endif
 
     request->send(SPIFFS, "/index_return.html", String(), false, processor1);
-    //request->send(200, "text/plain", "Para volver a la carga de datos debes volver a\n www.monitoreoisolse.com ");
   }); 
   server.onNotFound(notFound);
   server.begin();
@@ -242,13 +236,15 @@ bool WiFi_Configuration()
   
   if(!rtn)
   {
-    //OLED_write_WiFi_Fail(ssid_ap);
+    //OLED_write_WiFi_Fail(ssid_ap);   
     Wifi_AP_setup();
     all_set=false;
   }
   else
   {
     WiFi_Incorrect=false;
+    //**************
+    OLED_WiFi_State(true);
   }
   return rtn;
 }

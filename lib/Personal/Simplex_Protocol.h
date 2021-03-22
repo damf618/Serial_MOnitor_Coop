@@ -66,7 +66,7 @@ typedef struct message_parser_s{
 /*=====[Prototypes (declarations) of public functions]=======================*/
 
 //message_parser_t Separator_Search(char* data);
-message_parser_t Separator_Search(char *data, bool mode);
+message_parser_t Separator_Search(char *data);
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

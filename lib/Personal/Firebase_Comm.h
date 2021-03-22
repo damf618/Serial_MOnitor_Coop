@@ -4,7 +4,6 @@
 #include <FirebaseESP8266.h>
 #include <ESP8266WiFi.h>
 #include <SPIFFS_Serial_Monitor.h>
-//#include <OLED.h>
 #include <Simplex_Protocol.h>
 
 #define API_KEY "AIzaSyA7wXtS7zdsoGu7d5YBviLhCLpmWhPisU4"
@@ -20,6 +19,7 @@ static FirebaseAuth auth;
 static FirebaseConfig config;
 static FirebaseData fbdo;
 
+//ADVERTENCIA PARA NOMBRES DE MAXIMO 10 CARACTERES
 char enable_path[100] = "";
 char path_dataup[100] = "";
 
@@ -30,17 +30,14 @@ int count1 = 0;
 void prepareDatabaseRules(const char *var, const char *readVal, const char *writeVal)
 {
   char path_push[100] = "";
-  //We will sign in using legacy token (database secret) for full RTDB access
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-  //path = readFile(SPIFFS, "/FACILITY.txt");
   strcpy(path_push, readFile(SPIFFS, "/FACILITY.txt").c_str());
 
-//String Firebase_Div = "/";
-//path = auth.token.uid.c_str()+Firebase_Div+readFile(SPIFFS, "/FACILITY.txt");
-#ifdef TEST
-  Serial.println(F("------------------------------------"));
-  Serial.println(F("Read database ruless..."));
-#endif
+  #ifdef TEST
+    Serial.println(F("------------------------------------"));
+    Serial.println(F("Read database ruless..."));
+  #endif
+
   if (Firebase.getRules(fbdo))
   {
     FirebaseJsonData result;
@@ -108,71 +105,6 @@ void prepareDatabaseRules(const char *var, const char *readVal, const char *writ
     Serial.println("Failed to read the database rules, " + fbdo.errorReason());
   }
 #endif
-}
-
-/* The helper function to get the token type string */
-String getTokenType(struct token_info_t info)
-{
-  switch (info.type)
-  {
-  case token_type_undefined:
-    return "undefined";
-
-  case token_type_legacy_token:
-    return "legacy token";
-
-  case token_type_id_token:
-    return "id token";
-
-  case token_type_custom_token:
-    return "custom token";
-
-  case token_type_oauth2_access_token:
-    return "OAuth2.0 access token";
-
-  default:
-    break;
-  }
-  return "undefined";
-}
-
-/* The helper function to get the token status string */
-String getTokenStatus(struct token_info_t info)
-{
-  switch (info.status)
-  {
-  case token_status_uninitialized:
-    return "uninitialized";
-
-  case token_status_on_signing:
-    return "on signing";
-
-  case token_status_on_request:
-    return "on request";
-
-  case token_status_on_refresh:
-    return "on refreshing";
-
-  case token_status_ready:
-    return "ready";
-
-  case token_status_error:
-    return "error";
-
-  default:
-    break;
-  }
-  return "uninitialized";
-}
-
-/* The helper function to get the token error string */
-String getTokenError(struct token_info_t info)
-{
-  String s = "code: ";
-  s += String(info.error.code);
-  s += ", message: ";
-  s += info.error.message.c_str();
-  return s;
 }
 
 bool Firebase_Set_Up()
@@ -352,21 +284,9 @@ bool Firebase_First_Push()
 
 #ifdef TEST
   Serial.println(F("------------------------------------"));
-  if (info.status == token_status_error)
-  {
-    Serial.printf("Token info: type = %s, status = %s\n", getTokenType(info).c_str(), getTokenStatus(info).c_str());
-    Serial.printf("Token error: %s\n\n", getTokenError(info).c_str());
-  }
-  else
-  {
-    Serial.printf("Token info: type = %s, status = %s\n\n", getTokenType(info).c_str(), getTokenStatus(info).c_str());
-  }
-
-  Serial.println(F("------------------------------------"));
   Serial.println(F("Set int test..."));
   Serial.print(F("Set Path: "));
   Serial.println(path);
-//CUIDADO SI YA EXISTE GENERA FALLAS EN EL SISTEMA
 #endif
 
   if (Firebase.setString(fbdo, path + "/Usuario", auth.token.uid.c_str()))
@@ -377,8 +297,6 @@ bool Firebase_First_Push()
     Serial.println("PATH: " + fbdo.dataPath());
     Serial.println("TYPE: " + fbdo.dataType());
     Serial.println("ETag: " + fbdo.ETag());
-    Serial.print(F("VALUE: "));
-    //printResult(fbdo);
     Serial.println(F("------------------------------------"));
     Serial.println();
 #endif
@@ -395,9 +313,9 @@ bool Firebase_First_Push()
   return rtn;
 }
 
-int Firebase_Enable()
+bool Firebase_Enable()
 {
-  int rtn = false;
+  bool rtn = false;
   count++;
   if (count < FIREBASE_TRIES)
   {
@@ -405,28 +323,31 @@ int Firebase_Enable()
     {
       if (fbdo.dataType() == "int")
       {
-#ifdef TEST
-        Serial.print(F("DATA READ from Firebase: "));
-        Serial.println(fbdo.intData());
-        Serial.print(F("VALUE: "));
-        Serial.println(count);
-#endif
+        #ifdef TEST
+          Serial.print(F("DATA READ from Firebase: "));
+          Serial.println(fbdo.intData());
+          Serial.print(F("VALUE: "));
+          Serial.println(count);
+        #endif
         rtn = fbdo.intData();
       }
       else
       {
-#ifdef TEST
-        Serial.print(F("Invalid Data Received from Firebase"));
-#endif
-        rtn = 1;
+        #ifdef TEST
+          Serial.print(F("Invalid Data Received from Firebase"));
+        #endif
       }
     }
-#ifdef TEST
-    else
-    {
-      Serial.println(F("FAILED"));
-    }
-#endif
+    #ifdef TEST
+      else
+      {
+        Serial.println(F("FAILED"));
+      }
+    #endif
+  }
+  if(rtn!=0)
+  {
+    return true;
   }
   return rtn;
 }
@@ -435,24 +356,24 @@ bool Firebase_Check_Conn()
 {
   bool rtn = false;
   #ifdef TEST
-  if (FIREBASE_TRIES <= count)
-  {
-    Serial.println(F("Recuperacion Periodica"));
-  }
-  else
-  {
-    Serial.println(F("Recuperacion ForXSada"));  
-  }
+    if (FIREBASE_TRIES <= count)
+    {
+      Serial.println(F("Recuperacion Periodica"));
+    }
+    else
+    {
+      Serial.println(F("Recuperacion ForXSada"));  
+    }
   #endif
 
-    rtn = fbdo.httpConnected();
-#ifdef TEST
+  rtn = fbdo.httpConnected();
+  #ifdef TEST
     Serial.println(F("Validacion de Conexion HTTP"));
     if (rtn)
     {
       Serial.println(F("Conexion HTTP OK!"));
     }
-#endif
+  #endif
     rtn = fbdo.pauseFirebase(1);
     if (rtn)
     {
@@ -461,11 +382,12 @@ bool Firebase_Check_Conn()
       rtn = fbdo.pauseFirebase(0);
       if (rtn)
       {
-        Serial.println(F("Conexion Firebase Reiniciada"));
+        Serial.println(F("Conexion Firebase Reset"));
         count = 0;
         Firebase.begin(&config, &auth);
         delay(500);
-        if (Firebase_Enable())
+        rtn = Firebase_Enable();
+        if (rtn)
         {
           Serial.println(F("Conexion Restablecida"));
         }
@@ -480,45 +402,6 @@ bool Firebase_Check_Conn()
       Serial.println(F("Conexion NO pudo ser Pausada"));
     }
 
-  return rtn;
-}
-
-bool dataupload()
-{
-  bool rtn = false;
-#ifdef TEST
-  Serial.println(F("Firebase Data Upload"));
-#endif
-  count++;
-  count1++;
-  if (count <= FIREBASE_TRIES)
-  {
-    if (Firebase.setInt(fbdo, path_dataup, count1))
-    {
-      rtn = true;
-
-#ifdef TEST
-      Serial.println(F("PASSED"));
-      Serial.print(F("VALUE: "));
-      Serial.println(count);
-#endif
-    }
-#ifdef TEST
-    else
-    {
-      Serial.println(F("FAILED"));
-      Serial.println("REASON: " + fbdo.errorReason());
-      Serial.println(F("------------------------------------"));
-      Serial.println();
-    }
-#endif
-  }
-  /*
-  else
-  {
-    Firebase_Check_Conn();
-  }
-  */
   return rtn;
 }
 
@@ -638,74 +521,37 @@ bool dataupload2(FirebaseJsonArray *data, char index)
   return rtn;
 }
 
-void Json_Setup(String point_name, String name, String type, String status, bool mode, FirebaseJson *json1)
+void Json_Setup(String point_name, String name, String type, String status, FirebaseJson *json1)
 {
   json1[0].set("id", point_name);
   json1[0].set("name", name);
   json1[0].set("type", type);
   json1[0].set("status", status);
-
-  /*
-  if(mode)
-  {
-    json1[0].set("status", "PROBLEMA");
-  }
-  else
-  {
-    json1[0].set("status", "ALARMA");
-  }
-  */
 }
-/*
-FirebaseJson JSON_Conversion(char* Msg_Line, bool mode)
+
+void JSON_Conversion2(char *Msg_Line, FirebaseJson *data)
 {
-  FirebaseJson data;
-  message_parser_t rtn; 
+  message_parser_t rtn;
   #ifdef TEST
     String jsonStr;
     jsonStr.reserve(100);
   #endif
 
   rtn = Separator_Search(Msg_Line);
-    
-  Json_Setup(rtn.point_name,rtn.name,rtn.type,rtn.status,mode,&data);
-    
   #ifdef TEST
-    Serial.println(" ------------------------------- ");
-    data.toString(jsonStr, true);
-    Serial.println(jsonStr);
-    Serial.println(" ------------------------------- ");
-    Serial.println("End of JSON Conversion");
+    Serial.print(F("status: "));
+    Serial.println(rtn.status);
   #endif
-  return data;
-}
-*/
 
-void JSON_Conversion2(char *Msg_Line, bool mode, FirebaseJson *data)
-{
+  Json_Setup(rtn.point_name, rtn.name, rtn.type, rtn.status, data);
 
-  message_parser_t rtn;
-#ifdef TEST
-  String jsonStr;
-  jsonStr.reserve(100);
-#endif
-
-  rtn = Separator_Search(Msg_Line, mode);
-#ifdef TEST
-  Serial.print(F("status: "));
-  Serial.println(rtn.status);
-#endif
-
-  Json_Setup(rtn.point_name, rtn.name, rtn.type, rtn.status, mode, data);
-
-#ifdef TEST
-  Serial.println(F(" ------------------------------- "));
-  data[0].toString(jsonStr, true);
-  Serial.println(jsonStr);
-  Serial.println(F(" ------------------------------- "));
-  Serial.println(F("End of JSON Conversion"));
-#endif
-  //return data;
+  #ifdef TEST
+    Serial.println(F(" ------------------------------- "));
+    data[0].toString(jsonStr, true);
+    Serial.println(jsonStr);
+    Serial.println(F(" ------------------------------- "));
+    Serial.println(F("End of JSON Conversion"));
+  #endif
 }
 
 #endif
