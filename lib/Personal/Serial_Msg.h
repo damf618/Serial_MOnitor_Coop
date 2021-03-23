@@ -7,12 +7,14 @@
 #define MAXMSGS 21
 #define MAXMSGLENGTH 100
 #define ERROR_MSG "NO DATA"
+#define SIMPLEX_INIT_DELAY 50
 
 bool stringComplete = false; // whether the string is complete
 String Matriz[MAXMSGS];
 int count_index = 0;
 int count_rtn_index = 0;
 
+//TODO PUNTO DE MEJOR DE STRING 
 
 void Matriz_Setup()
 {
@@ -59,7 +61,6 @@ const char* get_Serial_Msg()
 
 void Msg_Upload(String inputString)
 {
-
   if(count_index <= MAXMSGS)
   {
     Matriz[count_index] = inputString;
@@ -82,13 +83,12 @@ void Serial_Configuration()
 void Simplex_Init()
 {
   Serial.print(F("exit\n"));
-  delay(50);
+  delay(SIMPLEX_INIT_DELAY);
   Serial.print(F("LOGIN\n"));
-  delay(50);
+  delay(SIMPLEX_INIT_DELAY);
   Serial.print(F("333\n"));
 }
 
-//TODO Make a previous validation to check if there are any fails
 void Simplex_Fail_List()
 {
   Serial.print(F("L T\n"));
@@ -104,6 +104,7 @@ bool get_flag()
   return stringComplete;
 }
 
+/*
 void Print_Msg_Data()
 {
   #ifdef TEST
@@ -118,11 +119,11 @@ void Print_Msg_Data()
   //count_index=0;
 
 }
+*/
 
 int get_count_index()
 {
   return count_index;
 }
-
 
 #endif

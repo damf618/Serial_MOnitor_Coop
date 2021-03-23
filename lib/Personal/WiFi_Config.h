@@ -9,9 +9,11 @@
 #include <SPIFFS_Serial_Monitor.h>
 
 
-#define TRIES 3
-#define HOSTNAME "www.monitorisolse.com"
-const char* ssid_ap = "MonitoreoIsolseWiFi";
+#define TRIES             3
+#define HOSTNAME          "www.monitorisolse.com"
+#define WIFI_INIT_DELAY   5000
+#define WIFI_TRY_DELAY    500
+const char* ssid_ap =     "MonitoreoIsolseWiFi";
 const char* password_ap = "MonitoreoIsolseWiFi";
 
 
@@ -70,25 +72,21 @@ void notFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "Lo sentimos Pagina no Encontrada");
 }
 
-
 bool Wifi_Connection(String SSID, String PSW)
 {
   int  counter  =0;
   bool rtn=false;
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID,PSW);
-  //OLED_write_init(SSID,ssid_ap);
-  delay(5000);
+  delay(WIFI_INIT_DELAY);
   while ((WiFi.status() != WL_CONNECTED)&&(counter<=TRIES))
   {
-    delay(500);
+    delay(WIFI_TRY_DELAY);
     counter++;
   }
   if(counter<=TRIES)
   {
     rtn=true;
-    //OLED_write_WiFi_OK();
-    //OLED_write_done();
   }
   return rtn;
 }
@@ -109,14 +107,11 @@ void Wifi_AP()
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid_ap, password_ap);
   dnsServer.start(DNS_PORT, HOSTNAME, apIP);
-
   server.begin();
-  //OLED_write_WiFi_AP(HOSTNAME);
 }
 
 void WiFi_Attention()
 {
-  //OLED_Write_WiFi_Attention(ssid_ap,HOSTNAME);
   #ifdef TEST
     Serial.print("\n Conectarse a: ");
     Serial.println(ssid_ap);
@@ -125,9 +120,9 @@ void WiFi_Attention()
   #endif
 
   OLED_WiFi_AP(ssid_ap,HOSTNAME);
-  //delay(1000);
 }
 
+//TODO PUNTO DE MEJOR DE STRING  REVISAR   prepareDatabaseRules
 void Wifi_AP_setup()
 {
   WiFi.mode(WIFI_AP);
@@ -135,11 +130,6 @@ void Wifi_AP_setup()
   WiFi.softAP(ssid_ap, password_ap);
   dnsServer.setErrorReplyCode(AsyncDNSReplyCode::ServerFailure);
   dnsServer.start(DNS_PORT, HOSTNAME, apIP); 
-  #ifdef TEST
-  Serial.print("Direccion IP: ");
-  Serial.println(apIP);
-  #endif
-  //OLED_write_WiFi_AP(HOSTNAME);
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false, processor);
@@ -149,6 +139,7 @@ void Wifi_AP_setup()
   server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) {
     String inputMessage;
     bool val=true;
+    inputMessage.reserve(50);
     
      // GET inputString value on <ESP_IP>/get?inputString=<inputMessage>
     if (request->hasParam(WIFI_SSID)) {
@@ -214,11 +205,16 @@ void Wifi_AP_setup()
   server.begin();
 }
 
+//TODO PUNTO DE MEJOR DE STRING
 bool WiFi_Configuration()
 {
   bool rtn = false;
-  String Data_SSID = readFile(SPIFFS, "/WIFI_SSID.txt");
-  String Data_PSW  = readFile(SPIFFS, "/WIFI_PSW.txt");
+  String Data_SSID;
+  Data_SSID.reserve(50);
+  Data_SSID = readFile(SPIFFS, "/WIFI_SSID.txt");
+  String Data_PSW;
+  Data_PSW.reserve(50);
+  Data_PSW  = readFile(SPIFFS, "/WIFI_PSW.txt");
 
   if((Data_SSID.length()>1)&&(Data_PSW.length()>1))
   {
@@ -235,8 +231,7 @@ bool WiFi_Configuration()
   #endif
   
   if(!rtn)
-  {
-    //OLED_write_WiFi_Fail(ssid_ap);   
+  {  
     Wifi_AP_setup();
     all_set=false;
   }

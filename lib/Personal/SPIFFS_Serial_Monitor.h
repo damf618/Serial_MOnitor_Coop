@@ -17,6 +17,7 @@ bool SPIFFS_Start()
   return rtn; 
 }
 
+//TODO PUNTO DE MEJOR DE STRING 
 String readFile(fs::FS &fs, const char * path){
   #ifdef TEST
   Serial.printf("Reading file: %s\r\n", path);
@@ -32,6 +33,7 @@ String readFile(fs::FS &fs, const char * path){
   Serial.println("- read from file:");
   #endif
   String fileContent;
+  fileContent.reserve(100);
   while(file.available()){
     fileContent+=String((char)file.read());
   }
@@ -62,4 +64,5 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
   file.print(message);
   #endif
 }
+
 #endif

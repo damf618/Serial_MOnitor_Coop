@@ -6,21 +6,25 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define SCREEN_WIDTH   128 // OLED display width, in pixels
+#define SCREEN_HEIGHT  32 // OLED display height, in pixels
 
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define LOGO_HEIGHT   13
-#define LOGO_WIDTH    17
+#define LOGO_HEIGHT        13
+#define LOGO_WIDTH         17
 
-#define LOGO_HEIGHT2   10
-#define LOGO_WIDTH2    37
+#define LOGO_HEIGHT2       10
+#define LOGO_WIDTH2        37
 
-#define LOGO_HEIGHT3   20
-#define LOGO_WIDTH3    20
+#define LOGO_HEIGHT3       20
+#define LOGO_WIDTH3        20
+
+#define SCREEN_REFRESH     15
+#define TEXT_SPEED         2
+#define SCREEN_REFRESHAP   20
 
 #define MSG_CLEAN        ""
 #define MSG_INIT         " - Sistema Inicializando - "
@@ -35,7 +39,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define MSG_CAI          " - Conexion con Central Simplex - "
 #define MSG_FIREBASE_OK  " - Servidor en Linea - "
 #define MSG_CAI_OK       " - Central en Linea - "
-
+#define MSG_FIREBASE_BAD " - Error en Conexion Firebase, Reinicio del Sistema - "
 
 
 static const unsigned char PROGMEM logo_isolse_bmp[] =
@@ -207,8 +211,7 @@ class Screen_Format
     display.setCursor(Msg_pos,24);
     display.print(message);
     display.drawBitmap(0,0,logo2_bmp, LOGO_WIDTH2, LOGO_HEIGHT2, 1);
-    //Msg_pos-=1;
-    Msg_pos-=2;
+    Msg_pos-=TEXT_SPEED;
     if(Msg_pos<Msg_len)
     {
       Msg_pos=display.width();
@@ -227,7 +230,7 @@ unsigned long timey = 0;
 unsigned long showtiming;
 bool ap_oled=false;
 
-void OLED_show(int time, char* mssg)
+void OLED_show(unsigned int time, char* mssg)
 {
   unsigned long timing;
   char msg[10];
@@ -241,7 +244,7 @@ void OLED_show(int time, char* mssg)
   while(time>(millis()-timing))
   {  
     OLED_Display.Screen_Set();
-    delay(25);
+    delay(SCREEN_REFRESH);
   }
   
   memcpy(msg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
@@ -253,7 +256,7 @@ void OLED_show(int time, char* mssg)
 void OLED_Start()
 {
   char mssg[50];
-  int showtime = 7000;
+  unsigned int showtime = 7000;
 
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
@@ -277,7 +280,7 @@ void OLED_Start()
 void OLED_WiFi()
 {
   char mssg[50];
-  int showtime = 10000;
+  unsigned int showtime = 10000;
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_WIFI_INIT);   
@@ -289,7 +292,7 @@ void OLED_WiFi()
 void OLED_Firebase()
 {
   char mssg[50];
-  int showtime = 15000;
+  unsigned int showtime = 15000;
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_FIREBASE);   
@@ -301,7 +304,7 @@ void OLED_Firebase()
 void OLED_Serial()
 {
   char mssg[50];
-  int showtime = 15000;
+  unsigned int showtime = 15000;
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_CAI);   
@@ -332,15 +335,14 @@ void OLED_WiFi_AP(const char * SSID, const char * Hostname)
   else
   { 
     OLED_Display.Screen_Set();
-    delay(35);
-  }
-  
+    delay(SCREEN_REFRESHAP);
+  } 
 }
 
 void OLED_WiFi_State(bool status)
 {
   char mssg[50];
-  int showtime=10000;
+  unsigned int showtime=10000;
   
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   if(status)
@@ -361,7 +363,7 @@ void OLED_WiFi_State(bool status)
 void OLED_Firebase_OK()
 {
   char mssg[50];
-  int showtime = 10000;
+  unsigned int showtime = 10000;
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_FIREBASE_OK);   
@@ -373,13 +375,26 @@ void OLED_Firebase_OK()
 void OLED_CAI_OK()
 {
   char mssg[50];
-  int showtime = 10000;
+  unsigned int showtime = 10000;
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_CAI_OK);   
   OLED_Display.Screen_Refresh(true,NORMAL,mssg);
 
   OLED_show(showtime,mssg);
+}
+
+void OLED_Firebase_BAD()
+{
+  char mssg[60];
+  unsigned int showtime = 10000;
+
+  memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  strcpy(mssg,MSG_FIREBASE_BAD);   
+  OLED_Display.Screen_Refresh(false,NORMAL,mssg);
+
+  OLED_show(showtime,mssg);
+
 }
 
 #endif

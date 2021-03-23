@@ -71,9 +71,10 @@ void Separator_Extract(message_parser_t *rtn, char msg_char, int index)
 		break;
 	
 	default:
-		//printf("Error");
 		#ifdef TEST
 			Serial.println("Error in Segmentation");
+		#else
+		rtn->status[rtn->index] = 'q';
 		#endif
 		break;
 	}

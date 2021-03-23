@@ -19,13 +19,11 @@ public:
 
   void FACP_Setup()
   {
-    Simplex_Init();
-    
+    Simplex_Init(); 
   }
 
   void Serial_Config()
   {
-    OLED_Firebase_OK();
     Serial_Configuration(); 
     OLED_Serial();
   }
@@ -35,16 +33,6 @@ public:
     Msg_Upload(Msg);
   }
 
-  void Trouble_Protocol()
-  {
-    Print_Msg_Data();
-  }
-
-  void Fire_Protocol()
-  {
-    Print_Msg_Data();
-  }
-  
   bool Start()
   {
     bool rtn = true;    
@@ -61,7 +49,7 @@ public:
     if (WiFi_Configuration())
     {
       //**************
-      OLED_WiFi_State(true);
+      //OLED_WiFi_State(true);
 
       #ifdef TEST
         Serial.println(F("*---**---**---**---*"));
@@ -88,17 +76,13 @@ public:
     OLED_Firebase_OK();
   }
 
-  //TODO Make a previous validation to check if there are any fails
   void get_Fails()
   {
-    //OLED_Trouble();
     Simplex_Fail_List();
   }
 
-  //TODO Make a previous validation to check if there are any fails
   void get_Alarms()
   {
-    //OLED_Fire();
     Simplex_Alarm_List();
   }
 
@@ -125,18 +109,24 @@ public:
   {
     OLED_Firebase();
     bool rtn = false;
+
     #ifdef TEST
     Serial.println(F("Firebase Set Up"));
     #endif
+
     rtn = Firebase_Set_Up();
+
     #ifdef TEST
     Serial.println(F("Firebase Set Up Correctly"));
     #endif
+
     if (rtn)
     {
+    
     #ifdef TEST
     Serial.println(F("Firebase 1st Push Up"));
     #endif
+
       rtn = Firebase_First_Push();
     }
     return rtn;
@@ -193,52 +183,50 @@ public:
       {
         rtn = true;
       }
+
       if(0!=loops)
       {
-      for(int i=0;i<loops;i++)
-      {
-        cycles++;
-        strcpy(msg_line,get_Serial_Msg());
-        strcpy(aux,USER_FLAG);
-        if(0!=memcmp (msg_line, aux, sizeof(msg_line)))
+        for(int i=0;i<loops;i++)
         {
-          JSON_Conversion2(msg_line,&data_j);
-          data.add(data_j);
-          data_j.clear();
-        }
-
-        //arreglas la condicion debe ser alcanar 3 y cargar en firebase
-        if((cycles>=3)||(loops-1==i))
-        {
-          
-          #ifdef TEST
-            Serial.println(F(" ********************************** "));
-            data.toString(jsonStr, true);
-            Serial.println(jsonStr);
-            Serial.println(F(" ********************************** "));
-          #endif
-          if(10>cycle_count)
+          cycles++;
+          strcpy(msg_line,get_Serial_Msg());
+          strcpy(aux,USER_FLAG);
+          if(0!=memcmp (msg_line, aux, sizeof(msg_line)))
           {
-            rtn = dataupload2(&data,cycle_count);
+            JSON_Conversion2(msg_line,&data_j);
+            data.add(data_j);
+            data_j.clear();
           }
-          #ifdef TEST
-            else
+
+          //arreglas la condicion debe ser alcanar 3 y cargar en firebase
+          if((cycles>=3)||(loops-1==i))
+          {
+            #ifdef TEST
+              Serial.println(F(" ********************************** "));
+              data.toString(jsonStr, true);
+              Serial.println(jsonStr);
+              Serial.println(F(" ********************************** "));
+            #endif
+            if(10>cycle_count)
             {
-              Serial.println(F(" Max number of failures reached!"));
+              rtn = dataupload2(&data,cycle_count);
             }
-          #endif
-          cycle_count++;
-          #ifdef TEST
-            Serial.println(F("Borrado de memoria"));
-          #endif
-          cycles = 0;
-          data.clear();
+            #ifdef TEST
+              else
+              {
+                Serial.println(F(" Max number of failures reached!"));
+              }
+            #endif
+            cycle_count++;
+            #ifdef TEST
+              Serial.println(F("Borrado de memoria"));
+            #endif
+            cycles = 0;
+            data.clear();
+          }
         }
       }
-      }
-      //clean_JSON_array();
     }
-
     else
     {
       if(0!=N_uploads)
@@ -249,7 +237,6 @@ public:
         #endif
       }
     }
-
     N_uploads = cycle_count;
     #ifdef TEST
       Serial.println(F("Borrado de final"));
@@ -270,9 +257,7 @@ public:
 
   void Print_OLED(bool WiFi_Con, Central_State CAII, char * messagee)
   {
-    
     OLED_Display.Screen_Loop_Refresh( WiFi_Con, CAII, messagee,refresh_oled);
-    //OLED_Display.Screen_Refresh( WiFi_Con, CAII, messagee);
     OLED_Display.Screen_Set();
     if(refresh_oled)
     {
@@ -292,6 +277,11 @@ public:
     refresh_oled=true;
     memcpy(msg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
     strcpy(msg,MSG_ALARM);
+  }
+
+  void OLED_Firebase_Error()
+  {
+    OLED_Firebase_BAD();
   }
 };
 

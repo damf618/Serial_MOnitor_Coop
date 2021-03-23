@@ -11,24 +11,27 @@
 
 
 #if defined(ARDUINO_AVR_MICRO)
-#define STACKSIZE_8BIT 92
+#define STACKSIZE_8BIT    92
 #else
-#define STACKSIZE_8BIT 40
+#define STACKSIZE_8BIT    40
 #endif
 
 
-#define LED_PERIOD 500
-#define FIREB_VAL  1
-#define SERIAL_REQ 4
-#define OLED_DISP  2
-#define FIREB_UP   3
-#define SERIAL_TIME 7500
+#define LED_PERIOD       500
+#define FIREB_VAL          1
+#define SERIAL_REQ         4
+#define OLED_DISP          2
+#define FIREB_UP           3
+#define SERIAL_TIME     7500
 
-#define FBASE_TRIES    50
+#define FBASE_TRIES       50
 //#define LOOP1_DELAY    24UL*60UL*60UL*1000UL
-#define LOOP1_DELAY    3000
+#define LOOP1_DELAY     3000
 //#define LOOP4_DELAY    30
-#define LOOP4_DELAY    3000
+#define LOOP4_DELAY     3000
+#define SERIAL_INTERVAL 3000
+#define SERIAL_TRY      5000
+#define MEMORY_PRINT   10000
 
 #define USE_BUILTIN_TASK_SCHEDULER
 
@@ -51,6 +54,7 @@ int firebase_tries = 0;
 unsigned long time1,time2,time3,time_rev;
 String inputString;
 
+//Task no.0: It's only purpose is to blink to indicate that the Program haven't crashed
 void Blinky_Blinky()
 {
     if (millis() - time_rev >= LED_PERIOD)
@@ -68,15 +72,14 @@ void Blinky_Blinky()
     }
 }
 
-// Task no.1: blink LED with 1 second delay.
+/*Task no.1: Firebase Validation Task is meant to enable/disable the entire system it is supposed to work
+once a day.
+*/
 void loop1()
 {
-    
     for (;;) // explicitly run forever without returning
     {
-        
-        valSema.wait();        
-        
+        valSema.wait();           
         #ifdef TEST
             Serial.println(F("Firebase Val"));
             delay(500);
@@ -98,7 +101,7 @@ void loop1()
                #ifdef TEST
                 Serial.println(F("Wi-Fi Connection DOWN!"));    
                #endif
-               //ESP.reset();
+               ESP.reset();
             } 
         }
         else
@@ -110,12 +113,11 @@ void loop1()
             Serial.print(F("El estado de WiFi_Con es: "));
             Serial.println(WiFi_Con);
         #endif
-
         delay(LOOP1_DELAY);
     }
 }
 
-// Task no.2: blink LED with 0.25 second delay.
+// Task no.2: OLED Display Task it is supposed to be called frequently to refresh the data on the OLED Display.
 void loop2()
 {
     for (;;) // explicitly run forever without returning
@@ -124,11 +126,13 @@ void loop2()
             CoopMutexLock serialLock(OLEDMutex);
             System.Print_OLED(WiFi_Con,CAII,messageb);
         }
-        delay(25);
+        delay(SCREEN_REFRESH);
     }
 }
 
-// Task no.3: 
+/*Task no.3: Simplex Serial Protocol is called here, it is supposed to be called once every 30 seconds to generate
+the data to be uploaded in Firebase.
+*/
 void loop4()
 {
     for (;;) // explicitly run forever without returning
@@ -155,7 +159,7 @@ void loop4()
         time2 = millis();
         yield();
         
-        
+        //Wait for the Simplex CAI Troubles to be received properly.
         while(Serial_F_Event)
         {
             taskSema.wait();
@@ -180,10 +184,12 @@ void loop4()
             CoopMutexLock serialLock(OLEDMutex);        
             System.Fire_OLED(messageb); 
         }        
+        System.get_Alarms();
         Serial_A_Event=1;
         time2 = millis();
         yield();
         
+        //Wait for the Simplex CAI Alarms to be received properly.
         while(Serial_A_Event)
         {
             taskSema.wait();
@@ -198,24 +204,21 @@ void loop4()
                 break;    
             }
         }
-
-        //*-**-*-*-
-        /*
-        {
-            CoopMutexLock serialLock(OLEDMutex);        
-            memcpy(messageb,MSG_CLEAN,strlen(MSG_CLEAN)+1);
-        }
-        */
         delay(LOOP4_DELAY);
         taskSema.post();
         yield();
     }
 }
 
+/*Serial Event: It is the principal Task, it receives the data, allocate it, and once the Fire Alarms are received, 
+the system proceeds to generate the corresponding JSON and upload them to Firebase.
+This task must be called in the Loop Segment it can'tbe allocated in the CoopTask memmory segment. 
+*/
 void SerialEvent()
 {
     char inChar;
-
+    //If there's any Request for 'LT'(Troubles) or 'LF'(Alarms), then we are cleared to save the data, if not
+    //we read the char and trash it.   
     if ((1==Serial_F_Event)||(1==Serial_A_Event))
     {
         #ifdef TEST
@@ -225,27 +228,29 @@ void SerialEvent()
                 Serial.print(F("."));
             }
         #endif
-            if (Serial.available())
+        //If we have made a request and also have some char received we proceed to allocate it for later.
+        if (Serial.available())
+        {
+            inChar = (char)Serial.read();
+            #ifdef TEST
+                Serial.print(inChar);
+            #endif
+
+            inputString += inChar;
+
+            if (((inChar == '\n') || (inputString.length() >= MAXMSGLENGTH))and(count_index<MAXMSGS))
             {
-                inChar = (char)Serial.read();
                 #ifdef TEST
-                    Serial.print(inChar);
+                    Serial.print(F("The message detected is: "));
+                    Serial.println(inputString.c_str());
                 #endif
-                inputString += inChar;
 
-                if (((inChar == '\n') || (inputString.length() >= 100))and(count_index<MAXMSGS))
-                {
-                    #ifdef TEST
-                        Serial.print(F("The message detected is: "));
-                        Serial.println(inputString.c_str());
-                    #endif
-
-                    System.Serial_Msg_Upload(inputString);
-                    msg = true;
-                    inputString = "";
-                }
+                System.Serial_Msg_Upload(inputString);
+                msg = true;
+                inputString = "";
             }
-        //En caso de no ser TEST o incluso si es un TEST Contrario almacenar la info para su procesamiento!
+        }
+        //Time's Up We should have received all the info required.
         if (millis() - time2 >= SERIAL_TIME)
         {
             inputString = "";
@@ -254,13 +259,14 @@ void SerialEvent()
             #ifdef TEST
                 Serial.println(F(".\n No more Serial listening"));
             #endif
-
+            
+            //If there was a Trouble List we proceed
             if(Serial_F_Event)
             {
-                System.Trouble_Protocol();
                 Serial_F_Event = false;
                 
                 #ifdef TEST
+                    //System.Trouble_Protocol();
                     Serial.println(F("Out of Troubles"));
                 #endif
                 
@@ -274,12 +280,14 @@ void SerialEvent()
                 }
                 msg = false;
             }
+
+            //If there was a Alarm List we proceed 
             else if(Serial_A_Event)
             {
-                System.Fire_Protocol();
                 Serial_A_Event = false;
                 
                 #ifdef TEST
+                    //System.Fire_Protocol();
                     Serial.println(F("Out of Fire"));
                 #endif
 
@@ -305,7 +313,10 @@ void SerialEvent()
                         Serial.println(F("Upload Complete"));
                     }
                 #else
-                    System.Firebase_upload();
+                    if(!System.Firebase_upload())
+                    {
+                        WiFi_Con = 0;
+                    }
                 #endif
             }
         }
@@ -317,6 +328,9 @@ void SerialEvent()
 
 }
 
+/* The limit for the Firebase transactions are 100 requests, if we need to surpass that limit we need to execute
+this function, which stops the Firebase service and reexecute them.   
+*/
 void Fix_Firebase()
 {
     bool  rtn =false;
@@ -349,9 +363,9 @@ void Fix_Firebase()
             #ifdef TEST
                 Serial.println(F("Maximo numero de Intentos de reparacion"));
             #endif
+            System.OLED_Firebase_Error();
             ESP.reset();
         }
-        
     }
 }
 
@@ -359,6 +373,7 @@ CoopTask<void>* task1;
 CoopTask<void>* task2;
 CoopTask<void>* task4;
 
+#ifdef TEST
 void printStackReport(CoopTaskBase* task)
 {
     if (!task) return;
@@ -377,6 +392,7 @@ void printReport()
     Serial.println(ESP.getFreeHeap());
     Serial.println(F("---------------------------------"));
 };
+#endif
 
 void setup()
 {
@@ -455,7 +471,7 @@ void setup()
     {
         System.FACP_Setup();
         timing=millis();
-        while((!Serial.available())&&(millis()-timing<=3000))
+        while((!Serial.available())&&(millis()-timing<=SERIAL_INTERVAL))
         {
             #ifdef TEST
                 Serial.print(F("."));
@@ -477,7 +493,7 @@ void setup()
             #ifdef TEST
                 Serial.println(F("Connection to FACP is impossible"));
             #endif
-            delay(5000);
+            delay(SERIAL_TRY);
         }
     } 
     #ifdef TEST
@@ -529,10 +545,9 @@ void loop()
     Fix_Firebase();
     
     #ifdef MEMORY
-        if(millis()-time3>=10000){
+        if(millis()-time3>=MEMORY_PRINT){
             time3 = millis();
             printReport();
         }
     #endif
-    
 }

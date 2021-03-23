@@ -14,6 +14,8 @@
 #define INT_UPLOAD_PATH "/Abnormal_Devices/"
 #define UPLOAD_DEVICE "Device"
 #define FIREBASE_TRIES 70
+#define FIREBASE_CONNECTION_DELAY 500
+#define FIREBASE_PAUSE_DELAY 1000
 
 static FirebaseAuth auth;
 static FirebaseConfig config;
@@ -27,6 +29,7 @@ String path = "";
 int count = 0;
 int count1 = 0;
 
+//TODO PUNTO DE MEJOR DE STRING
 void prepareDatabaseRules(const char *var, const char *readVal, const char *writeVal)
 {
   char path_push[100] = "";
@@ -80,33 +83,33 @@ void prepareDatabaseRules(const char *var, const char *readVal, const char *writ
       if (wr)
         js.add(".write", writeVal);
 
-#ifdef TEST
-      Serial.println(F("Set database rules..."));
-#endif
+      #ifdef TEST
+        Serial.println(F("Set database rules..."));
+      #endif
 
       json.set(_path, js);
       String rules = "";
       json.toString(rules, true);
-#ifdef TEST
-      if (!Firebase.setRules(fbdo, rules))
-      {
-        Serial.println("Failed to edit the database rules, " + fbdo.errorReason());
-      }
-#else
-      Firebase.setRules(fbdo, rules);
-#endif
+      #ifdef TEST
+        if (!Firebase.setRules(fbdo, rules))
+        {
+          Serial.println("Failed to edit the database rules, " + fbdo.errorReason());
+        }
+      #else
+        Firebase.setRules(fbdo, rules);
+      #endif
     }
-
     json.clear();
   }
-#ifdef TEST
-  else
-  {
-    Serial.println("Failed to read the database rules, " + fbdo.errorReason());
-  }
-#endif
+  #ifdef TEST
+    else
+    {
+      Serial.println("Failed to read the database rules, " + fbdo.errorReason());
+    }
+  #endif
 }
 
+//TODO PUNTO DE MEJOR DE STRING
 bool Firebase_Set_Up()
 {
   bool signupOK = false;
@@ -116,50 +119,45 @@ bool Firebase_Set_Up()
   char aux[100] = "";
   char var[10] = "$user";
   char val[25] = "(auth.uid === $user)";
-  //String user_created;
+  //Reserve de String
+  path.reserve(100);
 
   strcpy(username, readFile(SPIFFS, "/USERNAME.txt").c_str());
   strcpy(user_psw, readFile(SPIFFS, "/USER_PSW.txt").c_str());
   strcpy(user_created_c, readFile(SPIFFS, "/USER.txt").c_str());
   strcpy(aux, USER_FLAG);
 
-#ifdef TEST
-  Serial.print(F("Username: "));
-  Serial.println(username);
-  Serial.print(F("Password: "));
-  Serial.println(user_psw);
-  Serial.print(F("User created?: "));
-  Serial.println(user_created_c);
-  Serial.print(F("Aux: "));
-  Serial.println(aux);
-#endif
-
-#ifdef TEST
-  Serial.println(F("Firebase config"));
-#endif
+  #ifdef TEST
+    Serial.print(F("Username: "));
+    Serial.println(username);
+    Serial.print(F("Password: "));
+    Serial.println(user_psw);
+    Serial.print(F("User created?: "));
+    Serial.println(user_created_c);
+    Serial.print(F("Aux: "));
+    Serial.println(aux);
+    Serial.println(F("Firebase config"));
+  #endif
 
   config.host = FIREBASE_HOST;
   config.api_key = API_KEY;
 
-#ifdef TEST
-  Serial.println(F("Firebase String"));
-#endif
+  #ifdef TEST
+    Serial.println(F("Firebase String"));
+    Serial.println(F("Firebase auth"));
 
-#ifdef TEST
-  Serial.println(F("Firebase auth"));
-
-  if (0 != memcmp(aux, user_created_c, sizeof(aux)))
-  {
-    Serial.println(F("Not the same message!"));
-  }
-#endif
+    if (0 != memcmp(aux, user_created_c, sizeof(aux)))
+    {
+      Serial.println(F("Not the same message!"));
+    }
+  #endif
 
   auth.user.email = username;
   auth.user.password = user_psw;
 
-#ifdef TEST
-  Serial.println(F("Firebase wifi"));
-#endif
+  #ifdef TEST
+    Serial.println(F("Firebase wifi"));
+  #endif
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
@@ -173,74 +171,47 @@ bool Firebase_Set_Up()
   //Set database read timeout to 1 minute (max 15 minutes)
   Firebase.setReadTimeout(fbdo, 1000 * 5);
   //Firebase.setReadTimeout(fbdo, 1000 * 30);
-  //tiny, small, medium, large and unlimited.
+  
   //Size and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
   Firebase.setwriteSizeLimit(fbdo, "small");
 
-  //OLED_write_Firebase_Start();
-
-#ifdef TEST
-  Serial.println(F("Firebase signup"));
-  Serial.println(F("THINK1"));
-#endif
-
-  //OLED_write_Firebase_Think();
+  #ifdef TEST
+    Serial.println(F("Firebase signup"));
+    Serial.println(F("THINK1"));
+  #endif
 
   if (0 != memcmp(aux, user_created_c, sizeof(aux)))
   {
     if (Firebase.signUp(&config, &auth, username, user_psw))
     {
-#ifdef TEST
-      Serial.println(F("Success"));
-#endif
+      #ifdef TEST
+        Serial.println(F("Success"));
+      #endif
       writeFile(SPIFFS, "/USER.txt", USER_FLAG);
     }
-#ifdef TEST
-    else
-    {
-      Serial.printf("Failed, %s\n", config.signer.signupError.message.c_str());
-    }
-#endif
-
-#ifdef TEST
-    Serial.println(F("THINK2"));
-#endif
-
-    //OLED_write_Firebase_Think();
-
+    #ifdef TEST
+      else
+      {
+        Serial.printf("Failed, %s\n", config.signer.signupError.message.c_str());
+      }
+      Serial.println(F("THINK2"));
+    #endif
     prepareDatabaseRules(var, val, val);
   }
-  else
-  {
-
-    //OLED_write_Firebase_Think();
-
-#ifdef TEST
-    Serial.println(F("User already created"));
-#endif
-  }
-
-#ifdef TEST
-  Serial.println(F("THINK3"));
-#endif
-
-  //OLED_write_Firebase_Think();
-
-#ifdef TEST
-  Serial.println(F("THINK4"));
-#endif
-
-  //OLED_write_Firebase_Think();
-
-#ifdef TEST
-  Serial.println(F("THINK5"));
-#endif
+  #ifdef TEST
+    else
+    {
+      Serial.println(F("User already created"));
+    }
+    Serial.println(F("THINK3"));
+  #endif
 
   Firebase.begin(&config, &auth);
 
-#ifdef TEST
-  Serial.println(F("THINK7"));
-#endif
+  #ifdef TEST
+    Serial.println(F("THINK4"));
+  #endif
+
   path = auth.token.uid.c_str();
   path += "/";
   path += readFile(SPIFFS, "/FACILITY.txt");
@@ -251,11 +222,10 @@ bool Firebase_Set_Up()
 #endif
 
   signupOK = true;
-#ifdef TEST
-  Serial.println(F("THINK6"));
-#endif
 
-  //OLED_write_Firebase_Done();
+#ifdef TEST
+  Serial.println(F("THINK5"));
+#endif
 
   strcpy(enable_path, path.c_str());
   strcat(enable_path, ENABLE_PATH);
@@ -277,39 +247,34 @@ bool Firebase_Set_Up()
 
 bool Firebase_First_Push()
 {
-
   bool rtn = false;
-
   struct token_info_t info = Firebase.authTokenInfo();
 
-#ifdef TEST
-  Serial.println(F("------------------------------------"));
-  Serial.println(F("Set int test..."));
-  Serial.print(F("Set Path: "));
-  Serial.println(path);
-#endif
+  #ifdef TEST
+    Serial.println(F("------------------------------------"));
+    Serial.println(F("Set int test..."));
+    Serial.print(F("Set Path: "));
+    Serial.println(path);
+  #endif
 
   if (Firebase.setString(fbdo, path + "/Usuario", auth.token.uid.c_str()))
   {
     rtn = true;
-#ifdef TEST
-    Serial.println(F("PASSED"));
-    Serial.println("PATH: " + fbdo.dataPath());
-    Serial.println("TYPE: " + fbdo.dataType());
-    Serial.println("ETag: " + fbdo.ETag());
-    Serial.println(F("------------------------------------"));
-    Serial.println();
-#endif
+    #ifdef TEST
+      Serial.println(F("PASSED"));
+      Serial.println(F("------------------------------------"));
+      Serial.println();
+    #endif
   }
-#ifdef TEST
-  else
-  {
-    Serial.println(F("FAILED"));
-    Serial.println("REASON: " + fbdo.errorReason());
-    Serial.println(F("------------------------------------"));
-    Serial.println();
-  }
-#endif
+  #ifdef TEST
+    else
+    {
+      Serial.println(F("FAILED"));
+      Serial.println("REASON: " + fbdo.errorReason());
+      Serial.println(F("------------------------------------"));
+      Serial.println();
+    }
+  #endif
   return rtn;
 }
 
@@ -374,19 +339,25 @@ bool Firebase_Check_Conn()
       Serial.println(F("Conexion HTTP OK!"));
     }
   #endif
-    rtn = fbdo.pauseFirebase(1);
+  rtn = fbdo.pauseFirebase(1);
+  if (rtn)
+  {
+    #ifdef TEST
+      Serial.println(F("Conexion Firebase Pausada"));
+    #endif
+    delay(FIREBASE_PAUSE_DELAY);
+    rtn = fbdo.pauseFirebase(0);
     if (rtn)
     {
-      Serial.println(F("Conexion Firebase Pausada"));
-      delay(1000);
-      rtn = fbdo.pauseFirebase(0);
-      if (rtn)
-      {
+      #ifdef TEST
         Serial.println(F("Conexion Firebase Reset"));
-        count = 0;
-        Firebase.begin(&config, &auth);
-        delay(500);
-        rtn = Firebase_Enable();
+      #endif
+      count = 0;
+      Firebase.begin(&config, &auth);
+      delay(FIREBASE_CONNECTION_DELAY);
+      rtn = Firebase_Enable();
+        
+      #ifdef TEST
         if (rtn)
         {
           Serial.println(F("Conexion Restablecida"));
@@ -395,13 +366,15 @@ bool Firebase_Check_Conn()
         {
           Serial.println(F("Conexion Erronea"));
         }
-      }
+      #endif
     }
+  }
+  #ifdef TEST
     else
     {
       Serial.println(F("Conexion NO pudo ser Pausada"));
     }
-
+  #endif
   return rtn;
 }
 
@@ -409,34 +382,32 @@ bool Firebase_Clean()
 {
   bool rtn = false;
   count++;
+  
   if (Firebase.set(fbdo, path_dataup, ""))
   {
     rtn = true;
-#ifdef TEST
-    Serial.println(F("PASSED"));
-    Serial.print(F("VALUE: "));
-    Serial.println(count);
-#endif
+    #ifdef TEST
+      Serial.println(F("PASSED"));
+      Serial.print(F("VALUE: "));
+      Serial.println(count);
+    #endif
   }
-#ifdef TEST
-  else
-  {
-    Serial.println(F("FAILED"));
-    Serial.println("REASON: " + fbdo.errorReason());
-    Serial.println(F("------------------------------------"));
-    Serial.println();
-  }
-#endif
-
+  #ifdef TEST
+    else
+    {
+      Serial.println(F("FAILED"));
+      Serial.println("REASON: " + fbdo.errorReason());
+      Serial.println(F("------------------------------------"));
+      Serial.println();
+    }
+  #endif
   return rtn;
 }
 
 bool Firebase_Clean_Node(const char index)
 {
   bool rtn = false;
-
   char aux[100] = "";
-
   count++;
 
   strcpy(aux, path_dataup);
@@ -445,21 +416,21 @@ bool Firebase_Clean_Node(const char index)
   if (Firebase.deleteNode(fbdo, aux))
   {
     rtn = true;
-#ifdef TEST
-    Serial.println(F("PASSED"));
-    Serial.print(F("VALUE: "));
-    Serial.println(count);
-#endif
+    #ifdef TEST
+      Serial.println(F("PASSED"));
+      Serial.print(F("VALUE: "));
+      Serial.println(count);
+    #endif
   }
-#ifdef TEST
-  else
-  {
-    Serial.println(F("FAILED"));
-    Serial.println("REASON: " + fbdo.errorReason());
-    Serial.println(F("------------------------------------"));
-    Serial.println();
-  }
-#endif
+  #ifdef TEST
+    else
+    {
+      Serial.println(F("FAILED"));
+      Serial.println("REASON: " + fbdo.errorReason());
+      Serial.println(F("------------------------------------"));
+      Serial.println();
+    }
+  #endif
 
   return rtn;
 }
@@ -469,55 +440,45 @@ bool dataupload2(FirebaseJsonArray *data, char index)
   bool rtn = false;
   char aux[100] = "";
 
-#ifdef TEST
-  Serial.println(F("Firebase JSON Upload"));
-#endif
+  #ifdef TEST
+    Serial.println(F("Firebase JSON Upload"));
+  #endif
 
   strcpy(aux, path_dataup);
   aux[strlen(path_dataup)] = index + '0';
-  //prepara que ocurre en caso de que sean mas de 9.....
-  //strcat(aux,index);
-
-#ifdef TEST
-  Serial.print(F("path: "));
-  Serial.println(aux);
-  Serial.print(F("index: "));
-  Serial.println(index);
-  Serial.print(F("original: "));
-  Serial.println(path_dataup);
-#endif
+  
+  #ifdef TEST
+    Serial.print(F("path: "));
+    Serial.println(aux);
+    Serial.print(F("index: "));
+    Serial.println(index);
+    Serial.print(F("original: "));
+    Serial.println(path_dataup);
+  #endif
 
   count++;
   if (count <= FIREBASE_TRIES)
   {
-    //if (Firebase.setArray(fbdo, path_dataup, data[0]))
     if (Firebase.setArray(fbdo, aux, data[0]))
     {
       rtn = true;
 
-#ifdef TEST
-      Serial.println(F("PASSED"));
-      Serial.print(F("VALUE: "));
-      Serial.println(count);
-#endif
+      #ifdef TEST
+        Serial.println(F("PASSED"));
+        Serial.print(F("VALUE: "));
+        Serial.println(count);
+      #endif
     }
-#ifdef TEST
-    else
-    {
-      Serial.println(F("FAILED"));
-      Serial.println("REASON: " + fbdo.errorReason());
-      Serial.println(F("------------------------------------"));
-      Serial.println();
-    }
-#endif
+    #ifdef TEST
+      else
+      {
+        Serial.println(F("FAILED"));
+        Serial.println("REASON: " + fbdo.errorReason());
+        Serial.println(F("------------------------------------"));
+        Serial.println();
+      }
+    #endif
   }
-  /*
-  else
-  {
-    Firebase_Check_Conn();
-  }
-  */
-
   return rtn;
 }
 
