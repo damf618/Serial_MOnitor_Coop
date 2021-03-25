@@ -161,19 +161,19 @@ bool Firebase_Set_Up()
   Firebase.reconnectWiFi(true);
 
   //Set the size of WiFi rx/tx buffers in the case where we want to work with large data.
-  //fbdo.setBSSLBufferSize(256, 256);
-  fbdo.setBSSLBufferSize(128, 128);
+  //fbdo.setBSSLBufferSize(128, 128);
+  fbdo.setBSSLBufferSize(256, 256);
 
   //Set the size of HTTP response buffers in the case where we want to work with large data.
-  //fbdo.setResponseSize(256);
-  fbdo.setResponseSize(128);
+  //fbdo.setResponseSize(128);
+  fbdo.setResponseSize(1024);
 
   //Set database read timeout to 1 minute (max 15 minutes)
-  Firebase.setReadTimeout(fbdo, 1000 * 5);
+  Firebase.setReadTimeout(fbdo, 1000 * 10);
   //Firebase.setReadTimeout(fbdo, 1000 * 30);
   
   //Size and its write timeout e.g. tiny (1s), small (10s), medium (30s) and large (60s).
-  Firebase.setwriteSizeLimit(fbdo, "small");
+  Firebase.setwriteSizeLimit(fbdo, "medium");
 
   #ifdef TEST
     Serial.println(F("Firebase signup"));

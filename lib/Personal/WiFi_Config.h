@@ -9,9 +9,9 @@
 #include <SPIFFS_Serial_Monitor.h>
 
 
-#define TRIES             3
+#define TRIES             10
 #define HOSTNAME          "www.monitorisolse.com"
-#define WIFI_INIT_DELAY   5000
+#define WIFI_INIT_DELAY   1000
 #define WIFI_TRY_DELAY    500
 const char* ssid_ap =     "MonitoreoIsolseWiFi";
 const char* password_ap = "MonitoreoIsolseWiFi";
@@ -72,6 +72,7 @@ void notFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "Lo sentimos Pagina no Encontrada");
 }
 
+//TODO PUNTO DE MEJOR DE STRING 
 bool Wifi_Connection(String SSID, String PSW)
 {
   int  counter  =0;
@@ -87,6 +88,45 @@ bool Wifi_Connection(String SSID, String PSW)
   if(counter<=TRIES)
   {
     rtn=true;
+  }
+  return rtn;
+}
+
+//TODO PUNTO DE MEJOR DE STRING 
+bool Wifi_Con_Reset()
+{
+  int  counter =0;
+  bool rtn=false;
+  char SSID_c[30];
+  char PSW_c[30];
+
+  //memcpy(msg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
+  memcpy(SSID_c,readFile(SPIFFS, "/WIFI_SSID.txt").c_str(),strlen(readFile(SPIFFS, "/WIFI_SSID.txt").c_str())+1);
+  memcpy(PSW_c,readFile(SPIFFS, "/WIFI_PSW.txt").c_str(),strlen(readFile(SPIFFS, "/WIFI_PSW.txt").c_str())+1);
+
+  #ifdef TEST
+  Serial.print("WiFi SSID: ");
+  Serial.println(SSID_c);
+  Serial.print("WiFi PSW: ");
+  Serial.println(PSW_c);
+  #endif
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID_c,PSW_c);
+
+  delay(WIFI_INIT_DELAY);
+  while ((WiFi.status() != WL_CONNECTED)&&(counter<=TRIES))
+  {
+    delay(WIFI_TRY_DELAY);
+    counter++;
+  }
+  if(counter<=TRIES)
+  {
+    rtn=true;
+  }
+  else
+  {
+    ESP.reset();
   }
   return rtn;
 }

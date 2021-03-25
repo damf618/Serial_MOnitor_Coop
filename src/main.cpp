@@ -25,6 +25,7 @@
 #define SERIAL_TIME     7500
 
 #define FBASE_TRIES       50
+//                      dia  hora  min   s
 //#define LOOP1_DELAY    24UL*60UL*60UL*1000UL
 #define LOOP1_DELAY     3000
 //#define LOOP4_DELAY    30
@@ -32,11 +33,16 @@
 #define SERIAL_INTERVAL 3000
 #define SERIAL_TRY      5000
 #define MEMORY_PRINT   10000
+//                      min   s    ms
+//#define NORMAL_MAXTIME  10UL*60UL*1000UL
+#define NORMAL_MAXTIME  5UL*60UL*1000UL
+#define MILLIS_MINUTE   60UL*1000UL
 
 #define USE_BUILTIN_TASK_SCHEDULER
 
 CoopSemaphore taskSema(1, 1);
 CoopSemaphore valSema (1, 1);
+CoopSemaphore NorSema (0, 1);
 CoopMutex OLEDMutex;
 Coop_System System;
 
@@ -49,6 +55,7 @@ bool msg            = false;
 Central_State CAII  = NORMAL;
 char messageb[50]  = "";
 int firebase_tries = 0;
+bool wifi_down = false;
 
 
 unsigned long time1,time2,time3,time_rev;
@@ -127,6 +134,53 @@ void loop2()
             System.Print_OLED(WiFi_Con,CAII,messageb);
         }
         delay(SCREEN_REFRESH);
+    }
+}
+
+void loop3()
+{
+    unsigned long normal_timing=0;
+    NorSema.wait();
+    normal_timing=millis();
+    
+    for(;;)
+    {
+        #ifdef TEST
+            Serial.println("/*-/*-/-*/*-Validacion de Normal/*-/*-/-*/*-");
+        #endif
+        if(NORMAL==CAII)
+        {
+            if(!wifi_down)
+            {
+                if((millis()-normal_timing)>=NORMAL_MAXTIME)
+                {
+                    WiFi.mode( WIFI_OFF );
+                    WiFi.forceSleepBegin();
+                    #ifdef TEST
+                        Serial.println("WiFi is down");
+                    #endif
+                    wifi_down = true;
+                }
+            }
+            #ifdef TEST
+            else
+            {
+                Serial.println("WiFi already down");
+            }
+            #endif
+        }
+        else
+        {
+            #ifdef TEST
+                Serial.println("CAI no se encuentran en normal");
+                Serial.println("Reset de Timing");
+            #endif
+            normal_timing = millis();
+        }
+        #ifdef TEST
+            Serial.println("/*-/*-/-*/*-/*-/*-/-*/*-/*-/*-/-*/*-/*-/*-/-*/*-");
+        #endif
+        delay(MILLIS_MINUTE);
     }
 }
 
@@ -210,6 +264,9 @@ void loop4()
     }
 }
 
+//TODO PRIMERO ALARMA!!!!!!!!!!!!!!!!!!!!
+
+
 /*Serial Event: It is the principal Task, it receives the data, allocate it, and once the Fire Alarms are received, 
 the system proceeds to generate the corresponding JSON and upload them to Firebase.
 This task must be called in the Loop Segment it can'tbe allocated in the CoopTask memmory segment. 
@@ -274,10 +331,6 @@ void SerialEvent()
                 {
                     CAII  = FAILURE;
                 }
-                else
-                {
-                    CAII  = NORMAL;
-                }
                 msg = false;
             }
 
@@ -299,23 +352,53 @@ void SerialEvent()
                 {
                     CAII  = ALARM;
                 }
+                else
+                {
+                    CAII  = NORMAL;
+                }
                 msg = false;
 
-                #ifdef TEST
-                    Serial.println(F("Upload Attempt"));
-                    if(!System.Firebase_upload())
+                if(NORMAL!=CAII)
+                {
+                    if(wifi_down)
                     {
-                        WiFi_Con = 0;
-                        Serial.println(F("Upload Failed"));
+                        WiFi.forceSleepWake();
+                        delay(1);
+                        // Bring up the WiFi connection
+                        WiFi.mode(WIFI_STA);
+                        System.WiFi_Connection_Reset();
+                        #ifdef TEST
+                            Serial.println("WiFi is up");
+                        #endif
+                        wifi_down = false;
                     }
+                }
+
+                if(!wifi_down)
+                {
+                    #ifdef TEST
+                        Serial.println(F("Upload Attempt"));
+                        if(!System.Firebase_upload())
+                        {
+                            WiFi_Con = 0;
+                            Serial.println(F("Upload Failed"));
+                        }
+                        else
+                        {
+                            Serial.println(F("Upload Complete"));
+                        }
+                    #else
+                        if(!System.Firebase_upload())
+                        {
+                            WiFi_Con = 0;
+                        }
+                    #endif
+                    NorSema.post();
+                }
+                #ifdef TEST
                     else
                     {
-                        Serial.println(F("Upload Complete"));
-                    }
-                #else
-                    if(!System.Firebase_upload())
-                    {
-                        WiFi_Con = 0;
+                        Serial.println("El sistema se encuentra deshabilitado");
                     }
                 #endif
             }
@@ -371,6 +454,7 @@ void Fix_Firebase()
 
 CoopTask<void>* task1;
 CoopTask<void>* task2;
+CoopTask<void>* task3;
 CoopTask<void>* task4;
 
 #ifdef TEST
@@ -387,6 +471,7 @@ void printReport()
     Serial.println(F("---------------------------------"));
     printStackReport(task1);
     printStackReport(task2);
+    printStackReport(task3);
     printStackReport(task4);
     Serial.print(F("ESP mem: "));
     Serial.println(ESP.getFreeHeap());
@@ -403,7 +488,7 @@ void setup()
 
     Serial.begin(115200);   
     inputString.reserve(MAXMSGLENGTH);
-    WiFi.setSleepMode(WIFI_NONE_SLEEP);
+    //WiFi.setSleepMode(WIFI_NONE_SLEEP);
 
     //Serial.swap(); NUevos pines y nos libramos del SerialDEBUG
     /*
@@ -513,8 +598,8 @@ void setup()
     task2 = new CoopTask<void>(F("2- OLED Display"),        loop2,0x5DC);//3E8
     if (!*task2) {Serial.printf("CoopTask %s out of stack\n", task2->name().c_str());}
     //DAC
-    //task3 = new CoopTask<void>(F("3- Firebase Update"),     loop3,0xF0A);//9FC, CE4,  
-    //if (!*task3) {Serial.printf("CoopTask %s out of stack\n", task3->name().c_str());}
+    task3 = new CoopTask<void>(F("3- Minute Delay"),     loop3,0x4B0);//9FC, CE4,  
+    if (!*task3) {Serial.printf("CoopTask %s out of stack\n", task3->name().c_str());}
     
     task4 = new CoopTask<void>(F("3- Serial Request"),      loop4,0x4B0);//320
     if (!*task4) {Serial.printf("CoopTask %s out of stack\n", task4->name().c_str());}
@@ -526,7 +611,7 @@ void setup()
     
     if (!task2->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task2->name().c_str()); }
     
-    //if (!task3->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task3->name().c_str()); }
+    if (!task3->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task3->name().c_str()); }
     
     if (!task4->scheduleTask()) { Serial.printf("Could not schedule task %s\n", task4->name().c_str()); }
 

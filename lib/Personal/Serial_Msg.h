@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#define MAXMSGS 21
+#define MAXMSGS 11
 #define MAXMSGLENGTH 100
 #define ERROR_MSG "NO DATA"
 #define SIMPLEX_INIT_DELAY 50
@@ -103,23 +103,6 @@ bool get_flag()
 {
   return stringComplete;
 }
-
-/*
-void Print_Msg_Data()
-{
-  #ifdef TEST
-  for (int i=0;i<=count_index;i++)
-  {
-    Serial.print(F("Data "));
-    Serial.print(i);
-    Serial.println(F(" :"));
-    Serial.println(Matriz[i]);
-  }
-  #endif
-  //count_index=0;
-
-}
-*/
 
 int get_count_index()
 {

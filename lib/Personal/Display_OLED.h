@@ -143,7 +143,7 @@ class Screen_Format
     Msg_len =  -6*strlen(messagee);
     #ifdef TEST
       Serial.print("El nuevo largo del mensaje es de: ");
-      Serial.print(Msg_len);
+      Serial.println(Msg_len);
     #endif
     WiFi_Conn = WiFi_Con;
     CAI = CAII;
@@ -158,7 +158,7 @@ class Screen_Format
       Msg_len =  -6*strlen(messagee);
       #ifdef TEST
         Serial.print("El nuevo largo del mensaje es de: ");
-        Serial.print(Msg_len);
+        Serial.println(Msg_len);
       #endif
       strcpy(message,messagee);
     }
@@ -256,8 +256,11 @@ void OLED_show(unsigned int time, char* mssg)
 void OLED_Start()
 {
   char mssg[50];
-  unsigned int showtime = 7000;
-
+  #ifdef TEST
+    unsigned int showtime = 1000;
+  #else
+    unsigned int showtime = 7000;
+  #endif
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
@@ -280,7 +283,11 @@ void OLED_Start()
 void OLED_WiFi()
 {
   char mssg[50];
-  unsigned int showtime = 10000;
+  #ifdef TEST
+    unsigned int showtime = 1000;
+  #else
+    unsigned int showtime = 10000;
+  #endif
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_WIFI_INIT);   
@@ -292,7 +299,11 @@ void OLED_WiFi()
 void OLED_Firebase()
 {
   char mssg[50];
-  unsigned int showtime = 15000;
+  #ifdef TEST
+    unsigned int showtime = 1000;
+  #else
+    unsigned int showtime = 15000;
+  #endif
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_FIREBASE);   
@@ -304,7 +315,11 @@ void OLED_Firebase()
 void OLED_Serial()
 {
   char mssg[50];
-  unsigned int showtime = 15000;
+  #ifdef TEST
+    unsigned int showtime = 1000;
+  #else
+    unsigned int showtime = 15000;
+  #endif
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_CAI);   
@@ -342,7 +357,11 @@ void OLED_WiFi_AP(const char * SSID, const char * Hostname)
 void OLED_WiFi_State(bool status)
 {
   char mssg[50];
-  unsigned int showtime=10000;
+  #ifdef TEST
+    unsigned int showtime = 1000;
+  #else
+    unsigned int showtime = 10000;
+  #endif
   
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   if(status)
@@ -363,7 +382,11 @@ void OLED_WiFi_State(bool status)
 void OLED_Firebase_OK()
 {
   char mssg[50];
-  unsigned int showtime = 10000;
+  #ifdef TEST
+    unsigned int showtime = 1000;
+  #else
+    unsigned int showtime = 10000;
+  #endif
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_FIREBASE_OK);   
@@ -375,7 +398,11 @@ void OLED_Firebase_OK()
 void OLED_CAI_OK()
 {
   char mssg[50];
-  unsigned int showtime = 10000;
+  #ifdef TEST
+    unsigned int showtime = 1000;
+  #else
+    unsigned int showtime = 10000;
+  #endif
 
   memcpy(mssg,MSG_CLEAN,strlen(MSG_CLEAN)+1);
   strcpy(mssg,MSG_CAI_OK);   

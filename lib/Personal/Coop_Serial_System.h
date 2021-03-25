@@ -6,6 +6,8 @@
 #include <Serial_Msg.h>
 #include <Simplex_Protocol.h>
 
+#define JSON_NPACKET 5
+
 FirebaseJsonArray  data;
 FirebaseJson       data_j;
 String jsonStr;
@@ -64,6 +66,11 @@ public:
       rtn = false;
     }
     return rtn;
+  }
+
+  void WiFi_Connection_Reset()
+  {
+    Wifi_Con_Reset();
   }
 
   void CAI_OLED()
@@ -152,8 +159,8 @@ public:
 
     if(loops>=0)
     {
-      cycles_needed = (int)loops/3;
-      if(0!=loops%3)
+      cycles_needed = (int)loops/JSON_NPACKET;
+      if(0!=loops%JSON_NPACKET)
       {
         cycles_needed++;
       }
@@ -199,7 +206,7 @@ public:
           }
 
           //arreglas la condicion debe ser alcanar 3 y cargar en firebase
-          if((cycles>=3)||(loops-1==i))
+          if((cycles>=JSON_NPACKET)||(loops-1==i))
           {
             #ifdef TEST
               Serial.println(F(" ********************************** "));
@@ -207,9 +214,10 @@ public:
               Serial.println(jsonStr);
               Serial.println(F(" ********************************** "));
             #endif
-            if(10>cycle_count)
+            if(int(MAXMSGS/JSON_NPACKET)>cycle_count)
             {
               rtn = dataupload2(&data,cycle_count);
+              delay(10);
             }
             #ifdef TEST
               else
